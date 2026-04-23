@@ -29,6 +29,40 @@ div[data-testid="stSidebarContent"] {
     background: #1a2e4a;
 }
 div[data-testid="stSidebarContent"] * { color: rgba(255,255,255,0.85) !important; }
+
+/* ── 사이드바 네비게이션 버튼 ── */
+section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"] {
+    background: transparent !important;
+    border: none !important;
+    border-left: 3px solid transparent !important;
+    border-radius: 5px !important;
+    text-align: left !important;
+    color: rgba(255,255,255,0.62) !important;
+    padding: 9px 12px !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    margin: 1px 0 !important;
+    box-shadow: none !important;
+}
+section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"]:hover {
+    background: rgba(255,255,255,0.07) !important;
+    color: rgba(255,255,255,0.92) !important;
+    border-left-color: rgba(255,255,255,0.2) !important;
+}
+section[data-testid="stSidebar"] button[data-testid="baseButton-primary"] {
+    background: rgba(59,130,246,0.18) !important;
+    border: none !important;
+    border-left: 3px solid #60a5fa !important;
+    border-radius: 5px !important;
+    text-align: left !important;
+    color: white !important;
+    padding: 9px 12px !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    margin: 1px 0 !important;
+    box-shadow: none !important;
+}
+
 .sidebar-logo {
     font-size: 22px; font-weight: 900; letter-spacing: 3px;
     color: #fff; padding: 8px 0 16px 0; text-align: center;

@@ -14,6 +14,15 @@ PRIORITY_COLORS = {"H": "#dc2626", "M": "#d97706", "L": "#059669"}
 PRIORITY_LABELS = {"H": "높음", "M": "보통", "L": "낮음"}
 LEVEL_COLORS = {"urgent": "#fca5a5", "normal": "#93c5fd", "ok": "#6ee7b7"}
 LEVEL_LABELS = {"urgent": "긴급", "normal": "확인", "ok": "양호"}
+AVATAR_COLORS = ["#1d4ed8","#059669","#7c3aed","#b45309","#dc2626","#0891b2","#be185d"]
+
+
+def _avatar_html(name: str) -> str:
+    color = AVATAR_COLORS[sum(ord(c) for c in name) % len(AVATAR_COLORS)] if name else "#9ca3af"
+    initial = name[0] if name else "?"
+    return (f'<span style="display:inline-flex;align-items:center;justify-content:center;'
+            f'width:20px;height:20px;border-radius:50%;background:{color};color:white;'
+            f'font-size:10px;font-weight:700;flex-shrink:0">{initial}</span>')
 
 
 def render():
@@ -22,33 +31,48 @@ def render():
     units = cfg.get("units", {})
     is_manager = user["cell"] == "manager"
 
-    # 셀 선택 (팀장만)
+    # ── view_cell 결정 ──────────────────────────────────────────
     if is_manager:
         unit_keys = list(units.keys())
         dash_cell = st.session_state.get("dash_cell", unit_keys[0] if unit_keys else "marketing")
-        selected = st.selectbox(
-            "셀 선택",
-            options=unit_keys,
-            format_func=lambda x: units[x]["name"],
-            index=unit_keys.index(dash_cell) if dash_cell in unit_keys else 0,
-            key="dash_cell_select",
-        )
-        st.session_state.dash_cell = selected
-        view_cell = selected
-        title = f"{units[view_cell]['name']} 대시보드"
+        if dash_cell not in unit_keys:
+            dash_cell = unit_keys[0]
+        view_cell = dash_cell
     else:
         view_cell = user["cell"]
-        title = f"{units.get(view_cell, {}).get('name', view_cell)} 대시보드"
 
-    st.markdown(f"### {title}")
-    st.caption(date.today().strftime("%Y년 %m월 %d일 %A"))
+    title = f"{units.get(view_cell, {}).get('name', view_cell)} 대시보드"
+
+    # ── 페이지 헤더: 타이틀(좌) + 업무 추가 버튼(우) ────────────
+    col_title, col_btn = st.columns([3, 1])
+    with col_title:
+        st.markdown(f"### {title}")
+        st.caption(date.today().strftime("%Y년 %m월 %d일 %A"))
+    with col_btn:
+        st.write("")
+        if st.button("＋ 업무 추가", type="primary", use_container_width=True, key="dash_add_task"):
+            st.session_state.show_task_form = True
+            st.session_state.edit_task_id = None
+
+    # ── 셀 탭 (팀장만) ─────────────────────────────────────────
+    if is_manager:
+        tab_cols = st.columns(len(unit_keys))
+        for i, uk in enumerate(unit_keys):
+            with tab_cols[i]:
+                u = units[uk]
+                if st.button(
+                    f"{u.get('emoji','')} {u['name']}",
+                    key=f"dash_cell_tab_{uk}",
+                    type="primary" if uk == dash_cell else "secondary",
+                    use_container_width=True,
+                ):
+                    st.session_state.dash_cell = uk
+                    st.rerun()
 
     # ── 상단 2분할: 공유피드(좌) + AI 체크리스트(우) ──────────
     col_feed, col_ai = st.columns([1.15, 0.85])
-
     with col_feed:
         _render_shared_feed()
-
     with col_ai:
         _render_ai_checklist()
 
@@ -77,11 +101,6 @@ def render():
     st.markdown(f"**{units.get(view_cell, {}).get('name', view_cell)} 업무 현황**")
     visible = [t for t in get_visible_tasks() if t["cell"] == view_cell]
     _render_kanban(visible, compact=True)
-
-    # ── 업무 추가 버튼 ────────────────────────────────────────
-    if st.button("+ 업무 추가", key="dash_add_task"):
-        st.session_state.show_task_form = True
-        st.session_state.edit_task_id   = None
 
     if st.session_state.get("show_task_form"):
         _task_form(default_cell=view_cell)
@@ -146,18 +165,24 @@ def _render_shared_feed():
     items = []
     for t in tasks:
         if t.get("shared"):
-            cell_name = units.get(t["cell"], {}).get("name", t["cell"])
-            items.append({"ico": "✅", "title": t["title"], "cell": cell_name,
+            ci = units.get(t["cell"], {})
+            items.append({"ico": "✅", "title": t["title"],
+                          "cell": ci.get("name", t["cell"]),
+                          "cell_color": ci.get("color", "#6b7280"),
                           "sub": f"담당: {t.get('assignee','미정')} · 마감: {t.get('due','')}"})
     for e in events:
         if e.get("shared") and e.get("source") == "manual":
-            cell_name = units.get(e.get("cell",""), {}).get("name", e.get("cell","전체"))
-            items.append({"ico": "📅", "title": e["title"], "cell": cell_name or "전체",
+            ci = units.get(e.get("cell",""), {})
+            items.append({"ico": "📅", "title": e["title"],
+                          "cell": ci.get("name", e.get("cell","전체")) or "전체",
+                          "cell_color": ci.get("color", "#6b7280"),
                           "sub": f"{e['date']}"})
     for m in memos:
         if m.get("shared"):
-            cell_name = units.get(m.get("cell",""), {}).get("name", m.get("cell",""))
-            items.append({"ico": "📝", "title": m["title"], "cell": cell_name,
+            ci = units.get(m.get("cell",""), {})
+            items.append({"ico": "📝", "title": m["title"],
+                          "cell": ci.get("name", m.get("cell","")),
+                          "cell_color": ci.get("color", "#6b7280"),
                           "sub": m.get("date","")})
 
     st.markdown(f"""
@@ -177,7 +202,8 @@ def _render_shared_feed():
                         border-bottom:1px solid #f3f4f6;font-size:12px">
               <span>{item['ico']}</span>
               <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#374151">{item['title']}</span>
-              <span style="font-size:9.5px;color:#6b7280;white-space:nowrap">{item['cell']}</span>
+              <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;
+                           background:{item['cell_color']};color:white;white-space:nowrap">{item['cell']}</span>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -190,7 +216,9 @@ def _render_shared_feed():
 
 
 def _render_kanban(tasks: list, compact: bool = False):
-    cols = st.columns(4)
+    cfg   = st.session_state.get("cfg", {})
+    units = cfg.get("units", {})
+    cols  = st.columns(4)
     today = date.today()
     in3   = today + timedelta(days=3)
 
@@ -200,7 +228,10 @@ def _render_kanban(tasks: list, compact: bool = False):
             st.markdown(f"""
             <div style="background:{status['color']};color:white;
                         padding:7px 10px;border-radius:7px 7px 0 0;
-                        font-size:12px;font-weight:700;margin-bottom:4px">
+                        font-size:12px;font-weight:700;margin-bottom:4px;
+                        display:flex;align-items:center;gap:6px">
+              <span style="width:7px;height:7px;border-radius:50%;
+                           background:rgba(255,255,255,0.55);display:inline-block"></span>
               {status['label']} ({len(col_tasks)})
             </div>
             """, unsafe_allow_html=True)
@@ -212,21 +243,38 @@ def _render_kanban(tasks: list, compact: bool = False):
                 due_color = "#dc2626" if is_ov else "#d97706" if is_soon else "#9ca3af"
                 pri_color = PRIORITY_COLORS.get(t.get("pri","M"), "#9ca3af")
                 shared_border = "border-left:3px solid #059669;" if t.get("shared") else ""
+                ci = units.get(t["cell"], {})
+                cell_color = ci.get("color", "#9ca3af")
+                cell_name  = ci.get("name", t["cell"])
+                assignee   = t.get("assignee", "미정")
+                avatar     = _avatar_html(assignee)
 
                 st.markdown(f"""
                 <div style="background:white;border-radius:7px;padding:10px 11px;
                             margin:4px 0;box-shadow:0 1px 3px rgba(0,0,0,0.06);
-                            border-top:2px solid {pri_color};{shared_border}cursor:pointer">
+                            border-top:2px solid {pri_color};{shared_border}">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                    <span style="font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;
+                                 background:{pri_color}22;color:{pri_color}">
+                      {PRIORITY_LABELS.get(t.get('pri','M'),'보통')}
+                    </span>
+                    <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;
+                                 background:{cell_color};color:white">
+                      {cell_name}
+                    </span>
+                  </div>
                   <div style="font-size:12.5px;font-weight:600;color:#111827;
-                              margin-bottom:5px;line-height:1.4">{t['title']}</div>
-                  <div style="font-size:10px;color:{due_color};font-family:monospace">
-                    ~{t.get('due','')}</div>
-                  <div style="font-size:10.5px;color:#6b7280;margin-top:3px">
-                    {t.get('assignee','미정')}</div>
+                              margin-bottom:7px;line-height:1.4">{t['title']}</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:10px;color:{due_color};font-family:monospace">~{t.get('due','')}</span>
+                    <div style="display:flex;align-items:center;gap:4px">
+                      {avatar}
+                      <span style="font-size:10px;color:#6b7280">{assignee}</span>
+                    </div>
+                  </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-            # 업무 추가 버튼 (각 컬럼)
             if not compact:
                 if st.button(f"+ 추가", key=f"add_{status['key']}"):
                     st.session_state.show_task_form = True
