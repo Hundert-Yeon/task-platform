@@ -2,6 +2,7 @@
 pages_modules/dashboard.py
 대시보드 페이지
 """
+import re
 import streamlit as st
 from datetime import date, timedelta
 from utils.state import (
@@ -225,11 +226,12 @@ def _render_kanban_html(tasks: list, units: dict):
         </div>
         """
 
-    st.markdown(
+    full_html = (
         f'<div style="display:grid;grid-template-columns:repeat(4,1fr);'
-        f'gap:12px;align-items:start">{cols_html}</div>',
-        unsafe_allow_html=True,
+        f'gap:12px;align-items:start">{cols_html}</div>'
     )
+    full_html = re.sub(r'\n[ \t]*\n', '\n', full_html)
+    st.markdown(full_html, unsafe_allow_html=True)
 
 
 def _render_ai_checklist():
