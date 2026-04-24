@@ -3,6 +3,8 @@ pages_modules/admin_view.py  — 어드민 설정 (팀장 전용)
 """
 import streamlit as st
 import json
+import os
+import pathlib
 
 
 def render():
@@ -113,6 +115,12 @@ def render():
 
         st.divider()
 
+        # ── AI API 키 설정 ──────────────────────────────────────
+        st.markdown("#### 🤖 AI API 키 설정")
+        _render_api_key_section()
+
+        st.divider()
+
         # 팀장 비밀번호 변경
         st.markdown("#### 🔑 팀장 비밀번호 변경")
         with st.form("pw_form"):
@@ -170,3 +178,115 @@ def render():
                 else:
                     st.session_state.confirm_full_reset = True
                     st.warning("한번 더 누르면 Task·메모·파일·일정이 모두 삭제됩니다!")
+
+
+def _render_api_key_section():
+    """AI API 키 입력 및 저장 (세션 + secrets.toml 파일 동시 저장)"""
+    from utils.ai_helper import _get_api_key
+
+    current_key = _get_api_key()
+
+    # 현재 상태 표시
+    if current_key:
+        masked = current_key[:8] + "•" * 20 + current_key[-4:]
+        st.markdown(f"""
+        <div style="background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:8px;
+                    padding:9px 13px;font-size:12.5px;color:#065f46;margin-bottom:10px;
+                    display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px">✅</span>
+          <span>API 키 설정됨 &nbsp;<code style="font-size:11px;color:#059669">{masked}</code></span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;
+                    padding:9px 13px;font-size:12.5px;color:#991b1b;margin-bottom:10px;
+                    display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px">⚠️</span>
+          <span>API 키 미설정 — AI 기능이 비활성화됩니다</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with st.form("api_key_form"):
+        new_key = st.text_input(
+            "Anthropic API Key",
+            type="password",
+            placeholder="sk-ant-api...",
+            help="Anthropic Console에서 발급받은 API 키를 입력하세요",
+        )
+        save_col, test_col, clear_col = st.columns(3)
+        save_clicked  = save_col.form_submit_button("💾 저장",   type="primary", use_container_width=True)
+        test_clicked  = test_col.form_submit_button("🔗 테스트", use_container_width=True)
+        clear_clicked = clear_col.form_submit_button("🗑 초기화", use_container_width=True)
+
+    if save_clicked:
+        if not new_key.strip():
+            st.error("API 키를 입력해주세요.")
+        elif not new_key.strip().startswith("sk-"):
+            st.error("올바른 Anthropic API 키 형식이 아닙니다 (sk-ant-... 로 시작해야 합니다).")
+        else:
+            key = new_key.strip()
+            # 1) 세션에 즉시 적용
+            st.session_state.runtime_api_key = key
+            # 2) .streamlit/secrets.toml 에 영구 저장
+            _save_key_to_secrets(key)
+            # 3) AI 체크리스트 캐시 무효화 (새 키로 다시 생성)
+            st.session_state.pop("ai_checklist_cache", None)
+            st.success("API 키가 저장됐습니다! AI 기능이 활성화됩니다.")
+            st.rerun()
+
+    if test_clicked:
+        key_to_test = new_key.strip() if new_key.strip() else current_key
+        if not key_to_test:
+            st.error("테스트할 API 키가 없습니다.")
+        else:
+            with st.spinner("API 연결 테스트 중..."):
+                result = _test_api_key(key_to_test)
+            if result is True:
+                st.success("✅ API 연결 성공!")
+            else:
+                st.error(f"❌ 연결 실패: {result}")
+
+    if clear_clicked:
+        st.session_state.pop("runtime_api_key", None)
+        _save_key_to_secrets("")
+        st.session_state.pop("ai_checklist_cache", None)
+        st.info("API 키가 초기화됐습니다.")
+        st.rerun()
+
+
+def _save_key_to_secrets(api_key: str):
+    """secrets.toml 에 ANTHROPIC_API_KEY 를 저장 (앱 재시작 후에도 유지)"""
+    secrets_dir  = pathlib.Path(__file__).parent.parent / ".streamlit"
+    secrets_file = secrets_dir / "secrets.toml"
+
+    try:
+        secrets_dir.mkdir(exist_ok=True)
+        # 기존 내용 읽기
+        lines = []
+        if secrets_file.exists():
+            lines = secrets_file.read_text(encoding="utf-8").splitlines()
+
+        # ANTHROPIC_API_KEY 라인 제거 후 재삽입
+        lines = [l for l in lines if not l.strip().startswith("ANTHROPIC_API_KEY")]
+        if api_key:
+            lines.append(f'ANTHROPIC_API_KEY = "{api_key}"')
+
+        secrets_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except Exception as e:
+        st.warning(f"secrets.toml 저장 실패 (세션 내에서만 적용됩니다): {e}")
+
+
+def _test_api_key(api_key: str):
+    """API 키 유효성 테스트. 성공이면 True, 실패면 오류 메시지 문자열 반환."""
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=10,
+            messages=[{"role": "user", "content": "ping"}],
+        )
+        return True
+    except Exception as e:
+        return str(e)[:120]

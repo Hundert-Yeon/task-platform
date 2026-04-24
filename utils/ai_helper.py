@@ -9,11 +9,17 @@ from utils.state import EV_TYPES
 
 
 def _get_api_key() -> str:
-    """API 키 조회 (없으면 빈 문자열 반환 — st.stop() 호출 안 함)"""
+    """API 키 조회 순서: session_state(어드민 입력) → secrets.toml → 환경변수"""
+    # 어드민에서 런타임 입력한 키가 있으면 최우선 사용
+    runtime_key = st.session_state.get("runtime_api_key", "")
+    if runtime_key:
+        return runtime_key
+    # secrets.toml
     try:
         key = st.secrets.get("ANTHROPIC_API_KEY", "")
     except Exception:
         key = ""
+    # 환경변수
     if not key:
         import os
         key = os.environ.get("ANTHROPIC_API_KEY", "")
