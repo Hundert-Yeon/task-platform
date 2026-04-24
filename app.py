@@ -14,88 +14,122 @@ st.set_page_config(
 # ── 전역 CSS ─────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Noto Sans KR', sans-serif;
+:root {
+  --bg: #f0f2f7;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --blue: #1d4ed8;
+  --blue-light: #eff6ff;
+  --blue-sky: #dbeafe;
+  --ink: #111827;
+  --ink-mid: #374151;
+  --ink-light: #6b7280;
+  --ink-ghost: #d1d5db;
+  --border: #e5e7eb;
+  --green: #059669;
+  --amber: #d97706;
+  --red: #dc2626;
 }
-.main .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
+
+/* ── 전체 앱 배경 ── */
+html, body { font-family: 'Noto Sans KR', sans-serif; }
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"] {
+  background: var(--bg) !important;
+}
+.main .block-container {
+  background: var(--bg);
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+/* Streamlit 기본 UI 일부 숨김 */
+#MainMenu { visibility: hidden; }
+[data-testid="stToolbar"] { display: none; }
+footer { visibility: hidden; }
+
+/* ── 사이드바: 흰색 배경 + 어두운 텍스트 ── */
+[data-testid="stSidebar"],
+[data-testid="stSidebarContent"],
+div[data-testid="stSidebarContent"],
+section[data-testid="stSidebar"] > div:first-child {
+  background: var(--surface) !important;
+  background-color: var(--surface) !important;
+}
+section[data-testid="stSidebar"] {
+  border-right: 1px solid var(--border) !important;
+  box-shadow: 1px 0 6px rgba(0,0,0,0.04) !important;
+}
+
+/* 사이드바 텍스트 기본색 = 어두운 회색 */
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] small,
+[data-testid="stSidebar"] div[data-testid="stCaptionContainer"],
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+  color: var(--ink-light) !important;
+}
+[data-testid="stSidebar"] hr {
+  border-color: var(--border) !important;
+  margin: 6px 0 !important;
+}
+
+/* ── 사이드바 네비게이션 버튼 (비활성) ── */
+[data-testid="stSidebar"] button,
+[data-testid="stSidebar"] button[data-testid="baseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
+  background: transparent !important;
+  border: none !important;
+  border-left: 3px solid transparent !important;
+  border-radius: 7px !important;
+  text-align: left !important;
+  color: var(--ink-light) !important;
+  padding: 8px 9px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  margin: 1px 0 !important;
+  box-shadow: none !important;
+  font-family: 'Noto Sans KR', sans-serif !important;
+  transition: background 0.11s, color 0.11s !important;
+}
+[data-testid="stSidebar"] button:hover {
+  background: var(--bg) !important;
+  color: var(--ink) !important;
+  border-left-color: var(--ink-ghost) !important;
+}
+/* ── 사이드바 활성 버튼 ── */
+[data-testid="stSidebar"] button[data-testid="baseButton-primary"],
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"],
+[data-testid="stSidebar"] button[kind="primary"] {
+  background: var(--blue-light) !important;
+  border-left: 3px solid var(--blue) !important;
+  color: var(--blue) !important;
+  font-weight: 700 !important;
+}
+[data-testid="stSidebar"] button[data-testid="baseButton-primary"]:hover {
+  background: var(--blue-sky) !important;
+  color: var(--blue) !important;
+}
+
+/* ── 공통 버튼 ── */
 .stButton > button {
-    border-radius: 7px;
-    font-family: 'Noto Sans KR', sans-serif;
-    font-weight: 600;
-}
-div[data-testid="stSidebarContent"] {
-    background: #1a2e4a;
-}
-div[data-testid="stSidebarContent"] * { color: rgba(255,255,255,0.85) !important; }
-
-/* ── 사이드바 네비게이션 버튼 ── */
-section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"] {
-    background: transparent !important;
-    border: none !important;
-    border-left: 3px solid transparent !important;
-    border-radius: 5px !important;
-    text-align: left !important;
-    color: rgba(255,255,255,0.62) !important;
-    padding: 9px 12px !important;
-    font-size: 13.5px !important;
-    font-weight: 500 !important;
-    margin: 1px 0 !important;
-    box-shadow: none !important;
-}
-section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"]:hover {
-    background: rgba(255,255,255,0.07) !important;
-    color: rgba(255,255,255,0.92) !important;
-    border-left-color: rgba(255,255,255,0.2) !important;
-}
-section[data-testid="stSidebar"] button[data-testid="baseButton-primary"] {
-    background: rgba(59,130,246,0.18) !important;
-    border: none !important;
-    border-left: 3px solid #60a5fa !important;
-    border-radius: 5px !important;
-    text-align: left !important;
-    color: white !important;
-    padding: 9px 12px !important;
-    font-size: 13.5px !important;
-    font-weight: 700 !important;
-    margin: 1px 0 !important;
-    box-shadow: none !important;
+  border-radius: 7px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 600;
 }
 
+/* ── 사이드바 로고 ── */
 .sidebar-logo {
-    font-size: 22px; font-weight: 900; letter-spacing: 3px;
-    color: #fff; padding: 8px 0 16px 0; text-align: center;
-}
-/* 칸반 컬럼 */
-.kanban-header {
-    padding: 8px 12px; border-radius: 6px 6px 0 0;
-    font-weight: 700; font-size: 13px; color: white;
-    margin-bottom: 0;
-}
-.task-card {
-    background: white; border-radius: 8px; padding: 12px;
-    margin: 6px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    border-left: 3px solid #e5e7eb;
-}
-.task-card.shared { border-left-color: #059669; }
-.task-card.high   { border-top: 2px solid #dc2626; }
-.task-card.mid    { border-top: 2px solid #d97706; }
-.task-card.low    { border-top: 2px solid #059669; }
-/* AI 체크리스트 */
-.ai-checklist-box {
-    background: linear-gradient(135deg, #0f172a, #1e3a5f);
-    border-radius: 10px; padding: 16px 18px; color: white;
-}
-.ai-item { 
-    background: rgba(255,255,255,0.07); border-radius: 7px;
-    padding: 8px 12px; margin: 5px 0; font-size: 13px;
-}
-/* 공유피드 */
-.feed-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 12px; border-bottom: 1px solid #e5e7eb;
-    font-size: 12.5px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--ink);
+  padding: 4px 0 14px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -110,52 +144,55 @@ if not st.session_state.get("logged_in"):
 
 # ── 사이드바 ─────────────────────────────────────────────────
 with st.sidebar:
-    cfg = st.session_state.cfg
-    st.markdown(f"""
-    <div class="sidebar-logo">LOTTE TASK</div>
-    """, unsafe_allow_html=True)
-
+    cfg  = st.session_state.cfg
     user = st.session_state.user
-    unit_name = cfg["units"].get(user["cell"], {}).get("name", user["cell"])
+
+    # 로고
+    st.markdown('<div class="sidebar-logo">LOTTE TASK</div>', unsafe_allow_html=True)
+
+    unit_name  = cfg["units"].get(user["cell"], {}).get("name",  user["cell"])
     unit_color = cfg["units"].get(user["cell"], {}).get("color", "#1d4ed8")
 
+    # 유저 정보 카드
     st.markdown(f"""
-    <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px">
-        <span style="background:{unit_color};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">{unit_name}</span>
-        &nbsp; {user["name"]}
+    <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;
+                margin-bottom:8px;font-size:13px;border:1px solid #e5e7eb;
+                display:flex;align-items:center;gap:8px">
+      <span style="background:{unit_color};padding:2px 8px;border-radius:4px;
+                   font-size:11px;font-weight:700;color:white;flex-shrink:0">{unit_name}</span>
+      <span style="color:#374151;font-weight:500">{user['name']}</span>
     </div>
     """, unsafe_allow_html=True)
 
     # 네비게이션
     pages = {
-        "📊 대시보드":       "dashboard",
-        "✅ Task Board":     "tasks",
-        "📅 캘린더":         "calendar",
-        "📁 파일 저장소":    "files",
-        "📝 메모장":         "memo",
+        "📊 대시보드":    "dashboard",
+        "✅ Task Board":  "tasks",
+        "📅 캘린더":      "calendar",
+        "📁 파일 저장소": "files",
+        "📝 메모장":      "memo",
     }
     if user["cell"] == "manager":
         pages["🌐 전체 공유 피드"] = "shared_feed"
         pages["⚙️ 어드민 설정"]   = "admin"
 
-    page_key = "current_page"
-    if page_key not in st.session_state:
-        st.session_state[page_key] = "dashboard"
+    if "current_page" not in st.session_state:
+        st.session_state.current_page = "dashboard"
 
     for label, key in pages.items():
-        is_active = st.session_state[page_key] == key
+        is_active = st.session_state.current_page == key
         if st.button(label, key=f"nav_{key}",
                      use_container_width=True,
                      type="primary" if is_active else "secondary"):
-            st.session_state[page_key] = key
+            st.session_state.current_page = key
             st.rerun()
 
     st.divider()
-    # 공유 항목 수
-    tasks = st.session_state.get("tasks", [])
-    memos = st.session_state.get("memos", [])
-    shared_count = sum(1 for t in tasks if t.get("shared")) + \
-                   sum(1 for m in memos if m.get("shared"))
+
+    tasks_all = st.session_state.get("tasks", [])
+    memos_all = st.session_state.get("memos", [])
+    shared_count = (sum(1 for t in tasks_all if t.get("shared")) +
+                    sum(1 for m in memos_all if m.get("shared")))
     st.caption(f"🟢 공유 항목 {shared_count}개")
 
     if st.button("🚪 로그아웃", use_container_width=True):

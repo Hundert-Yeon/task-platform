@@ -3,22 +3,33 @@ utils/ai_helper.py
 Anthropic API 호출 헬퍼
 """
 import streamlit as st
-import anthropic
 import json
 from datetime import date, timedelta
 from utils.state import EV_TYPES
 
 
-def get_client() -> anthropic.Anthropic:
-    """Anthropic 클라이언트 (st.secrets 또는 환경변수)"""
-    api_key = st.secrets.get("ANTHROPIC_API_KEY", None)
-    if not api_key:
+def _get_api_key() -> str:
+    """API 키 조회 (없으면 빈 문자열 반환 — st.stop() 호출 안 함)"""
+    try:
+        key = st.secrets.get("ANTHROPIC_API_KEY", "")
+    except Exception:
+        key = ""
+    if not key:
         import os
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        st.error("⚠️ ANTHROPIC_API_KEY가 설정되지 않았습니다. `.streamlit/secrets.toml`에 추가하세요.")
-        st.stop()
-    return anthropic.Anthropic(api_key=api_key)
+        key = os.environ.get("ANTHROPIC_API_KEY", "")
+    return key
+
+
+def get_client():
+    """Anthropic 클라이언트. API 키가 없으면 None 반환."""
+    key = _get_api_key()
+    if not key:
+        return None
+    try:
+        import anthropic
+        return anthropic.Anthropic(api_key=key)
+    except Exception:
+        return None
 
 
 def build_team_context() -> str:
@@ -74,10 +85,15 @@ def build_team_context() -> str:
 
 
 def get_ai_checklist() -> list[dict]:
-    """오늘의 AI 체크리스트 생성 (JSON 반환)"""
-    ctx = build_team_context()
+    """오늘의 AI 체크리스트 생성. API 키 없으면 안내 항목 반환."""
     client = get_client()
+    if client is None:
+        return [
+            {"icon": "🔑", "text": "AI 기능을 사용하려면 ANTHROPIC_API_KEY를 설정하세요.", "level": "normal"},
+            {"icon": "📋", "text": ".streamlit/secrets.toml 에 ANTHROPIC_API_KEY = \"sk-...\" 추가", "level": "normal"},
+        ]
 
+    ctx = build_team_context()
     prompt = f"""당신은 롯데백화점 인천점 영업기획팀 AI 어시스턴트입니다.
 아래 팀 업무 현황을 분석해서 "TODAY'S AI CHECKLIST"를 작성하세요.
 
@@ -108,6 +124,10 @@ def get_ai_checklist() -> list[dict]:
 
 def chat_with_advisor(user_message: str, history: list[dict]) -> str:
     """AI 어드바이저 채팅 응답"""
+    client = get_client()
+    if client is None:
+        return "⚠️ AI 기능을 사용하려면 ANTHROPIC_API_KEY를 설정하세요."
+
     ctx = build_team_context()
     user = st.session_state.get("user", {})
     cfg  = st.session_state.get("cfg", {})
@@ -123,9 +143,6 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
 위 팀 내부 데이터와 함께 외부 유통업계 트렌드·마케팅 사례·전략 등을 활용해
 실질적이고 구체적인 조언을 제공하세요. 한국어로 친절하고 전문적으로 답변하세요."""
 
-    client = get_client()
-
-    # 대화 히스토리 포함
     messages = history[-10:] + [{"role": "user", "content": user_message}]
 
     try:
@@ -143,6 +160,9 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
 def extract_action_items(memo_content: str) -> str:
     """메모에서 Action Item 추출"""
     client = get_client()
+    if client is None:
+        return "⚠️ AI 기능을 사용하려면 ANTHROPIC_API_KEY를 설정하세요."
+
     try:
         response = client.messages.create(
             model="claude-sonnet-4-5",
