@@ -13,7 +13,7 @@ def render():
         return
 
     st.markdown("### ⚙️ 어드민 설정")
-    st.caption("유닛/셀 관리 · 팀장 비밀번호 변경 · 시스템 설정")
+    st.caption("팀/유닛/셀 관리 · 팀장 비밀번호 변경 · 시스템 설정")
 
     cfg = st.session_state.cfg
 
@@ -25,7 +25,7 @@ def render():
 
     c1, c2, c3 = st.columns(3)
     c1.metric("전체 Task",    len(tasks))
-    c2.metric("유닛/셀 수",   len(units))
+    c2.metric("팀/유닛/셀 수", len(units))
     c3.metric("메모·파일",    len(memos) + len(files))
 
     st.divider()
@@ -34,16 +34,19 @@ def render():
 
     # ── 좌: 유닛/셀 관리 ─────────────────────────────────────
     with col_left:
-        st.markdown("#### 🏢 유닛 / 셀 관리")
+        st.markdown("#### 🏢 팀 / 유닛 / 셀 관리")
         st.caption("이름·색상·이모지·유형 수정 가능")
+
+        TYPE_OPTIONS = ["팀", "유닛", "셀"]
 
         for uid, u in list(units.items()):
             with st.expander(f"{u['emoji']} {u['name']} ({u['type']})", expanded=False):
                 with st.form(f"unit_form_{uid}"):
                     new_emoji = st.text_input("이모지", value=u.get("emoji","📁"), max_chars=2)
                     new_name  = st.text_input("이름",   value=u["name"])
-                    new_type  = st.selectbox("유형", ["유닛","셀"],
-                                             index=0 if u["type"]=="유닛" else 1)
+                    cur_type  = u["type"] if u["type"] in TYPE_OPTIONS else "유닛"
+                    new_type  = st.selectbox("유형", TYPE_OPTIONS,
+                                             index=TYPE_OPTIONS.index(cur_type))
                     new_color = st.color_picker("색상", value=u["color"])
 
                     s_col1, s_col2 = st.columns(2)
@@ -73,14 +76,14 @@ def render():
                         else:
                             st.error("최소 1개의 유닛/셀이 필요합니다")
 
-        # 새 유닛/셀 추가
-        st.markdown("**+ 새 유닛/셀 추가**")
+        # 새 팀/유닛/셀 추가
+        st.markdown("**+ 새 팀/유닛/셀 추가**")
         with st.form("add_unit_form"):
             a_col1, a_col2 = st.columns([1, 3])
             new_emoji = a_col1.text_input("이모지", value="📁", max_chars=2)
             new_name  = a_col2.text_input("이름")
             b_col1, b_col2, b_col3 = st.columns(3)
-            new_type  = b_col1.selectbox("유형", ["유닛","셀"])
+            new_type  = b_col1.selectbox("유형", ["팀", "유닛", "셀"])
             new_color = b_col2.color_picker("색상", value="#3b82f6")
 
             if st.form_submit_button("추가", type="primary", use_container_width=True):
