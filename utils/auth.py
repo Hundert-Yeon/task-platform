@@ -94,7 +94,8 @@ def login_screen():
                     st.error("비밀번호가 올바르지 않습니다")
                     return
 
-            st.session_state.logged_in = True
+            st.session_state.logged_in    = True
+            st.session_state.current_page = "dashboard"
             st.session_state.user = {
                 "cell": selected_cell,
                 "name": name_input.strip(),
