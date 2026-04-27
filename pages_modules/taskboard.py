@@ -124,6 +124,7 @@ def render():
     # ── 업무 추가/수정 모달 ───────────────────────────────────
     if st.session_state.get("show_task_modal"):
         _task_form()
+        st.session_state.show_task_modal = False
 
 
 def _next_status(current: str) -> str | None:
