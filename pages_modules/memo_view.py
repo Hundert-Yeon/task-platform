@@ -20,7 +20,7 @@ def render():
         if st.button("+ 새 메모", use_container_width=True, type="primary"):
             new_memo = {
                 "id":      new_id(),
-                "title":   "새 메모",
+                "title":   "",
                 "content": "",
                 "date":    date.today().isoformat(),
                 "cell":    None if user["cell"] == "manager" else user["cell"],
@@ -37,7 +37,8 @@ def render():
             cell_info    = cfg_units.get(m.get("cell", ""), {})
             cell_name    = cell_info.get("name", "")
             cell_color   = cell_info.get("color", "#9ca3af")
-            label = f"{'▶ ' if is_active else ''}{m['title'][:18]}{shared_badge}"
+            display_title = m['title'][:18] if m['title'].strip() else "제목 없음"
+            label = f"{'▶ ' if is_active else ''}{display_title}{shared_badge}"
             if st.button(label, key=f"memo_sel_{m['id']}", use_container_width=True,
                          type="primary" if is_active else "secondary"):
                 st.session_state.current_memo_id = m["id"]
@@ -73,7 +74,7 @@ def render():
             )
 
         # 제목
-        new_title = st.text_input("제목", value=memo["title"], key=f"memo_title_{memo['id']}")
+        new_title = st.text_input("제목", value=memo["title"], placeholder="제목을 입력하세요", key=f"memo_title_{memo['id']}")
         if new_title != memo["title"]:
             memo["title"] = new_title
 
