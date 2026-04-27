@@ -21,8 +21,8 @@ def login_screen():
         text-align: center;
     }
     body { background: linear-gradient(135deg,#0c1a35,#1a3461,#0f172a) !important; }
-    .login-branch  { font-size: 22px; font-weight: 700; color: rgba(255,255,255,0.88); letter-spacing:2px; margin-top:10px; }
-    .login-team    { font-size: 13px; color: rgba(255,255,255,0.45); letter-spacing:1.5px; margin-top:3px; }
+    .login-branch  { font-size: 22px; font-weight: 700; color: #1a3461; letter-spacing:2px; margin-top:10px; }
+    .login-team    { font-size: 13px; color: #6b7280; letter-spacing:1.5px; margin-top:3px; }
     .login-hint    { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 14px; line-height:1.7; }
     </style>
     <div style="background:linear-gradient(135deg,#0c1a35,#1a3461,#0f172a);position:fixed;inset:0;z-index:-1"></div>

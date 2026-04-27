@@ -135,14 +135,11 @@ def _next_status(current: str) -> str | None:
     return None
 
 
+@st.dialog("업무 추가 / 수정", width="large")
 def _task_form():
-    """업무 추가/수정 사이드 폼"""
-    st.markdown("---")
+    """업무 추가/수정 팝업 다이얼로그"""
     edit_id  = st.session_state.get("edit_task_id")
     edit_task = next((t for t in st.session_state.tasks if t["id"] == edit_id), None) if edit_id else None
-    title_str = "업무 수정" if edit_task else "업무 추가"
-
-    st.subheader(title_str)
 
     user  = st.session_state.user
     cfg   = st.session_state.cfg

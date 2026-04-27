@@ -4,7 +4,6 @@ pages_modules/memo_view.py  — 메모장
 import streamlit as st
 from datetime import date
 from utils.state import get_visible_memos, new_id
-from utils.ai_helper import extract_action_items
 
 
 def render():
@@ -72,13 +71,9 @@ def render():
                 st.toast(msg)
 
         with col_ai:
-            if st.button("✦ Action 추출", use_container_width=True):
-                if memo["content"].strip():
-                    with st.spinner("AI가 Action Item을 추출하는 중..."):
-                        result = extract_action_items(memo["content"])
-                    st.session_state[f"memo_ai_{memo['id']}"] = result
-                else:
-                    st.warning("메모 내용을 입력하세요")
+            if st.button("💾 저장", use_container_width=True):
+                memo["date"] = date.today().isoformat()
+                st.toast("메모가 저장됐습니다!", icon="✅")
 
         with col_del:
             if st.button("🗑 삭제", use_container_width=True):
@@ -87,12 +82,3 @@ def render():
                 st.rerun()
 
         # AI 결과 표시
-        ai_result = st.session_state.get(f"memo_ai_{memo['id']}")
-        if ai_result:
-            st.markdown("""
-            <div style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);
-                        border-radius:8px;padding:12px 14px;margin-top:8px">
-              <div style="font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:6px">✦ AI Action Items</div>
-            """, unsafe_allow_html=True)
-            st.text(ai_result)
-            st.markdown("</div>", unsafe_allow_html=True)
