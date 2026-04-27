@@ -50,7 +50,7 @@ def login_screen():
         unit_options["manager"] = "👑 팀장 (전체 열람)"
 
         selected_cell = st.selectbox(
-            "소속 유닛 / 셀 선택",
+            "소속 팀 / 유닛 / 셀 선택",
             options=list(unit_options.keys()),
             format_func=lambda x: unit_options[x],
             index=None,
@@ -59,13 +59,32 @@ def login_screen():
 
         name_input = st.text_input("이름", placeholder="이름을 입력하세요")
 
+        # 선택된 팀/유닛/셀 명칭을 이름 뒤에 뱃지로 표시
+        if selected_cell and name_input.strip():
+            if selected_cell == "manager":
+                badge_color = "#1d4ed8"
+                badge_text  = "팀장"
+            else:
+                u_info      = units.get(selected_cell, {})
+                badge_color = u_info.get("color", "#6b7280")
+                badge_text  = u_info.get("name", "")
+            st.markdown(f"""
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;
+                        background:#f8fafc;border-radius:7px;border:1px solid #e5e7eb;
+                        margin-top:-6px;margin-bottom:4px">
+              <span style="font-size:13px;font-weight:600;color:#111827">{name_input.strip()}</span>
+              <span style="background:{badge_color};color:white;font-size:10px;
+                           font-weight:700;padding:2px 9px;border-radius:4px">{badge_text}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
         pw_input = None
         if selected_cell == "manager":
             pw_input = st.text_input("팀장 비밀번호", type="password", placeholder="비밀번호 입력")
 
         if st.button("입장하기 →", use_container_width=True, type="primary"):
             if not selected_cell:
-                st.error("유닛/셀을 선택해주세요")
+                st.error("팀/유닛/셀을 선택해주세요")
                 return
             if not name_input.strip():
                 st.error("이름을 입력해주세요")
