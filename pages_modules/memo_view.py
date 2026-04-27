@@ -13,6 +13,8 @@ def render():
 
     col_list, col_editor = st.columns([1, 2])
 
+    cfg_units = st.session_state.cfg.get("units", {})
+
     with col_list:
         st.markdown("**메모 목록**")
         if st.button("+ 새 메모", use_container_width=True, type="primary"):
@@ -30,13 +32,24 @@ def render():
 
         memos = get_visible_memos()
         for m in memos:
-            is_active = st.session_state.get("current_memo_id") == m["id"]
+            is_active    = st.session_state.get("current_memo_id") == m["id"]
             shared_badge = " 🌐" if m.get("shared") else ""
+            cell_info    = cfg_units.get(m.get("cell", ""), {})
+            cell_name    = cell_info.get("name", "")
+            cell_color   = cell_info.get("color", "#9ca3af")
             label = f"{'▶ ' if is_active else ''}{m['title'][:18]}{shared_badge}"
             if st.button(label, key=f"memo_sel_{m['id']}", use_container_width=True,
                          type="primary" if is_active else "secondary"):
                 st.session_state.current_memo_id = m["id"]
                 st.rerun()
+            if cell_name:
+                st.markdown(
+                    f"<div style='margin-top:-10px;margin-bottom:2px;padding-left:2px'>"
+                    f"<span style='font-size:9px;font-weight:700;padding:1px 6px;"
+                    f"border-radius:3px;background:{cell_color};color:white'>{cell_name}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
 
     with col_editor:
         cur_id = st.session_state.get("current_memo_id")
@@ -45,6 +58,19 @@ def render():
         if not memo:
             st.info("왼쪽에서 메모를 선택하거나 새 메모를 만드세요.")
             return
+
+        # 소속 뱃지
+        editor_cell_info  = cfg_units.get(memo.get("cell", ""), {})
+        editor_cell_name  = editor_cell_info.get("name", "")
+        editor_cell_color = editor_cell_info.get("color", "#9ca3af")
+        if editor_cell_name:
+            st.markdown(
+                f"<div style='margin-bottom:6px'>"
+                f"<span style='font-size:10px;font-weight:700;padding:3px 10px;"
+                f"border-radius:4px;background:{editor_cell_color};color:white'>"
+                f"{editor_cell_name}</span></div>",
+                unsafe_allow_html=True,
+            )
 
         # 제목
         new_title = st.text_input("제목", value=memo["title"], key=f"memo_title_{memo['id']}")

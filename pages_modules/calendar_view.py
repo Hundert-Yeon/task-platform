@@ -200,13 +200,22 @@ def render():
         in3   = today + timedelta(days=3)
 
         if task_evs:
+            cfg_units = st.session_state.cfg.get("units", {})
             task_html = ""
             for ev in task_evs:
-                due_d   = date.fromisoformat(ev["date"])
-                is_ov   = due_d < today
-                is_soon = today <= due_d <= in3
-                col     = "#dc2626" if is_ov else "#d97706" if is_soon else "#3b82f6"
-                badge   = "🔴" if is_ov else "🟡" if is_soon else "🔵"
+                due_d      = date.fromisoformat(ev["date"])
+                is_ov      = due_d < today
+                is_soon    = today <= due_d <= in3
+                col        = "#dc2626" if is_ov else "#d97706" if is_soon else "#3b82f6"
+                badge      = "🔴" if is_ov else "🟡" if is_soon else "🔵"
+                cell_info  = cfg_units.get(ev.get("cell", ""), {})
+                cell_name  = cell_info.get("name", "")
+                cell_color = cell_info.get("color", "#9ca3af")
+                cell_badge = (
+                    f"<span style='font-size:9px;font-weight:700;padding:2px 7px;"
+                    f"border-radius:3px;background:{cell_color};color:white;flex-shrink:0'>"
+                    f"{cell_name}</span>"
+                ) if cell_name else ""
                 task_html += (
                     f"<div style='display:flex;align-items:flex-start;gap:6px;padding:7px 10px;"
                     f"background:white;border-radius:7px;border:1px solid #e5e7eb;"
@@ -215,8 +224,10 @@ def render():
                     f"<div style='flex:1;min-width:0'>"
                     f"<div style='font-weight:600;color:#111827;white-space:nowrap;"
                     f"overflow:hidden;text-overflow:ellipsis'>{ev['title']}</div>"
-                    f"<div style='font-size:10px;color:{col};font-family:monospace;margin-top:2px'>{ev['date']}</div>"
-                    f"</div></div>"
+                    f"<div style='display:flex;align-items:center;justify-content:space-between;margin-top:3px'>"
+                    f"<span style='font-size:10px;color:{col};font-family:monospace'>{ev['date']}</span>"
+                    f"{cell_badge}"
+                    f"</div></div></div>"
                 )
             st.markdown(task_html, unsafe_allow_html=True)
         else:

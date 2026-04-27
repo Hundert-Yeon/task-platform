@@ -46,7 +46,7 @@ def login_screen():
         st.divider()
 
         units = cfg.get("units", {})
-        unit_options = {uid: f"{u['emoji']} {u['name']}" for uid, u in units.items()}
+        unit_options = {uid: f"{u['emoji']} {u['name']} · {u['type']}" for uid, u in units.items()}
         unit_options["manager"] = "👑 팀장 (전체 열람)"
 
         selected_cell = st.selectbox(
