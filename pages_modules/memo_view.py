@@ -53,6 +53,31 @@ def render():
                 )
 
     with col_editor:
+        st.markdown("""
+        <style>
+        div[data-testid="stTextInput"] input {
+            border: 1.5px solid #d1d5db !important;
+            border-radius: 7px !important;
+            background: #ffffff !important;
+            padding: 8px 12px !important;
+        }
+        div[data-testid="stTextInput"] input:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.12) !important;
+        }
+        div[data-testid="stTextArea"] textarea {
+            border: 1.5px solid #d1d5db !important;
+            border-radius: 7px !important;
+            background: #ffffff !important;
+            padding: 10px 12px !important;
+        }
+        div[data-testid="stTextArea"] textarea:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.12) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
         cur_id = st.session_state.get("current_memo_id")
         memo   = next((m for m in st.session_state.memos if m["id"] == cur_id), None)
 
