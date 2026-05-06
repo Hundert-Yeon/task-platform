@@ -120,6 +120,20 @@ section[data-testid="stSidebar"] {
   font-weight: 600;
 }
 
+/* ── Primary 버튼: 진파란색 (로그인·업무추가 등) ── */
+button[data-testid="baseButton-primary"],
+[data-testid="stBaseButton-primary"] {
+  background: #1d4ed8 !important;
+  border: 1px solid #1e40af !important;
+  color: white !important;
+}
+button[data-testid="baseButton-primary"]:hover,
+[data-testid="stBaseButton-primary"]:hover {
+  background: #1e40af !important;
+  border-color: #1e3a8a !important;
+  color: white !important;
+}
+
 /* ── 사이드바 로고 ── */
 .sidebar-logo {
   font-size: 18px;
@@ -147,8 +161,15 @@ with st.sidebar:
     cfg  = st.session_state.cfg
     user = st.session_state.user
 
-    # 로고
-    st.markdown('<div class="sidebar-logo">LOTTE TASK</div>', unsafe_allow_html=True)
+    # 로고: 어드민 설정의 점·팀 이름 표시
+    branch = cfg.get("branch_name", "인천점")
+    team   = cfg.get("team_name", "영업기획팀")
+    st.markdown(
+        f"<div class='sidebar-logo'>{branch}"
+        f"<br><span style='font-size:11px;font-weight:600;letter-spacing:1px;"
+        f"color:#6b7280'>{team}</span></div>",
+        unsafe_allow_html=True,
+    )
 
     unit_name  = cfg["units"].get(user["cell"], {}).get("name",  user["cell"])
     unit_color = cfg["units"].get(user["cell"], {}).get("color", "#1d4ed8")

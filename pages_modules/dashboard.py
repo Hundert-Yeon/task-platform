@@ -235,37 +235,45 @@ def _render_kanban_html(tasks: list, units: dict):
 
 
 def _render_ai_checklist():
-    st.markdown("""
-    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);
-                border-radius:10px;padding:14px 16px;color:white">
-      <div style="font-size:11px;letter-spacing:2px;font-weight:700;margin-bottom:10px">
-        ✦ TODAY&#39;S AI CHECKLIST
-      </div>
-    """, unsafe_allow_html=True)
-
     cache_key = "ai_checklist_cache"
     if cache_key not in st.session_state:
         with st.spinner("AI 분석 중..."):
             st.session_state[cache_key] = get_ai_checklist()
 
+    items_html = ""
     for item in st.session_state[cache_key]:
         level = item.get("level", "normal")
         color = LEVEL_COLORS.get(level, "#93c5fd")
         badge = LEVEL_LABELS.get(level, "확인")
-        st.markdown(f"""
-        <div style="background:rgba(255,255,255,0.07);border-radius:7px;
-                    padding:7px 10px;margin:4px 0;display:flex;
-                    align-items:flex-start;gap:8px;border:1px solid rgba(255,255,255,0.08)">
-          <span style="font-size:13px;flex-shrink:0">{item.get('icon','📌')}</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85);
-                       flex:1;line-height:1.5">{_esc(item.get('text',''))}</span>
-          <span style="font-size:10px;font-weight:700;background:rgba(0,0,0,0.3);
-                       color:{color};padding:2px 6px;border-radius:4px;
-                       flex-shrink:0">{badge}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        items_html += (
+            f"<div style='background:rgba(255,255,255,0.07);border-radius:7px;"
+            f"padding:7px 10px;margin:4px 0;display:flex;"
+            f"align-items:flex-start;gap:8px;border:1px solid rgba(255,255,255,0.08)'>"
+            f"<span style='font-size:13px;flex-shrink:0'>{item.get('icon','📌')}</span>"
+            f"<span style='font-size:12px;color:rgba(255,255,255,0.9);"
+            f"flex:1;line-height:1.5'>{_esc(item.get('text',''))}</span>"
+            f"<span style='font-size:10px;font-weight:700;background:rgba(0,0,0,0.3);"
+            f"color:{color};padding:2px 6px;border-radius:4px;"
+            f"flex-shrink:0'>{badge}</span>"
+            f"</div>"
+        )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    if not items_html:
+        items_html = (
+            "<div style='color:rgba(255,255,255,0.5);font-size:12px;"
+            "text-align:center;padding:16px'>항목이 없습니다</div>"
+        )
+
+    full_html = (
+        "<div style='background:linear-gradient(135deg,#0f172a,#1e3a5f);"
+        "border-radius:10px;padding:14px 16px;color:white'>"
+        "<div style='font-size:11px;letter-spacing:2px;font-weight:700;margin-bottom:10px'>"
+        "✦ TODAY'S AI CHECKLIST"
+        "</div>"
+        f"{items_html}"
+        "</div>"
+    )
+    st.markdown(full_html, unsafe_allow_html=True)
 
     if st.button("↺ 새로고침", key="refresh_checklist"):
         st.session_state.pop(cache_key, None)
