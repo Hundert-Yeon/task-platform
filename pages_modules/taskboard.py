@@ -169,23 +169,24 @@ def render():
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # 상세/수정/상태변경/삭제 버튼
-                    bc1, bc2, bc3, bc4 = st.columns([1, 1, 1, 1])
-                    with bc1:
+                    # 상세/수정 (1행) · 상태변경/삭제 (2행)
+                    br1c1, br1c2 = st.columns(2)
+                    with br1c1:
                         if st.button("상세", key=f"det_{t['id']}", use_container_width=True):
                             st.session_state.detail_task_id = t["id"]
                             st.rerun()
-                    with bc2:
+                    with br1c2:
                         if st.button("수정", key=f"edit_{t['id']}", use_container_width=True):
-                            st.session_state.edit_task_id   = t["id"]
+                            st.session_state.edit_task_id    = t["id"]
                             st.session_state.show_task_modal = True
-                    with bc3:
+                    br2c1, br2c2 = st.columns(2)
+                    with br2c1:
                         new_st = _next_status(t["status"])
                         if new_st and st.button(f"→{new_st}", key=f"mv_{t['id']}", use_container_width=True):
                             t["status"] = new_st
                             sync_tasks_to_calendar()
                             st.rerun()
-                    with bc4:
+                    with br2c2:
                         if st.button("삭제", key=f"del_{t['id']}", use_container_width=True):
                             st.session_state.tasks = [x for x in st.session_state.tasks if x["id"] != t["id"]]
                             sync_tasks_to_calendar()
