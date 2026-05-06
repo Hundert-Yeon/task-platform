@@ -199,12 +199,17 @@ with st.sidebar:
         "📝 메모장":      "memo",
     }
     if user["cell"] == "manager":
-        # 팀장: 항상 모든 메뉴 + 어드민
-        pages = dict(ALL_PAGES)
-        pages["🌐 전체 공유 피드"] = "shared_feed"
-        pages["⚙️ 어드민 설정"]   = "admin"
+        # 팀장: menu_visibility 적용 + 팀장 전용 메뉴(전체공유피드·어드민)는 항상 표시
+        pages = {
+            label: key
+            for label, key in ALL_PAGES.items()
+            if menu_vis.get(key, True)
+        }
+        if menu_vis.get("shared_feed", True):
+            pages["🌐 전체 공유 피드"] = "shared_feed"
+        pages["⚙️ 어드민 설정"] = "admin"
     else:
-        # 일반 팀원: 어드민 설정의 menu_visibility 적용
+        # 일반 팀원: menu_visibility 적용
         pages = {
             label: key
             for label, key in ALL_PAGES.items()
