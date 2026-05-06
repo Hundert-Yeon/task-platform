@@ -2,12 +2,12 @@
 pages_modules/calendar_view.py
 캘린더 페이지
 """
-import re
 import streamlit as st
 import calendar
 from datetime import date, timedelta, datetime
 from urllib.parse import quote
 from utils.state import get_visible_events, new_id, KR_HOLIDAYS, EV_TYPES
+from pages_modules.taskboard import _task_detail_popup
 
 TYPE_COLORS = {
     "task":     "#3b82f6",
@@ -96,9 +96,58 @@ def _gcal_link(ev: dict) -> str:
     )
 
 
+@st.dialog("일정 추가", width="large")
+def _event_form_dialog():
+    """일정 직접 추가 팝업"""
+    with st.form("event_form_modal"):
+        ev_title  = st.text_input("일정명 *")
+        col1, col2 = st.columns(2)
+        ev_date   = col1.date_input("날짜", value=date.today())
+        ev_type   = col2.selectbox(
+            "유형", list(EV_TYPES.keys()), format_func=lambda x: EV_TYPES[x]
+        )
+        ev_note   = st.text_input("메모")
+        ev_shared = st.checkbox("전체 공유", value=True)
+
+        s1, s2 = st.columns(2)
+        submitted = s1.form_submit_button("저장", type="primary", use_container_width=True)
+        cancelled = s2.form_submit_button("취소", use_container_width=True)
+
+    if submitted and ev_title.strip():
+        user = st.session_state.user
+        st.session_state.events.append({
+            "id":     new_id(),
+            "title":  ev_title.strip(),
+            "date":   ev_date.isoformat(),
+            "type":   ev_type,
+            "note":   ev_note,
+            "shared": ev_shared,
+            "cell":   None if user["cell"] == "manager" else user["cell"],
+            "source": "manual",
+        })
+        st.success("일정이 추가됐습니다!")
+        st.rerun()
+
+    if cancelled:
+        st.rerun()
+
+
 def render():
-    st.markdown("### 📅 캘린더")
-    st.caption("팀 일정 · Task 마감일 자동 반영 · 공휴일 표기")
+    col_hdr, col_btn = st.columns([3, 1])
+    with col_hdr:
+        st.markdown("### 📅 캘린더")
+        st.caption("팀 일정 · Task 마감일 자동 반영 · 공휴일 표기")
+    with col_btn:
+        st.write("")
+        if st.button("＋ 일정 추가", type="primary", use_container_width=True, key="cal_add_ev_btn"):
+            st.session_state.show_event_modal = True
+
+    if st.session_state.get("show_event_modal"):
+        _event_form_dialog()
+        st.session_state.show_event_modal = False
+
+    if "detail_task_id" not in st.session_state:
+        st.session_state.detail_task_id = None
 
     today         = date.today()
     today_str_val = today.isoformat()
@@ -181,74 +230,76 @@ def render():
                 unsafe_allow_html=True,
             )
 
-        # 날짜 그리드
+        # 날짜 그리드 (버튼 기반 — 클릭으로 날짜 선택)
         for week in cal_matrix:
             week_cols = st.columns(7)
             for dow, day in enumerate(week):
                 with week_cols[dow]:
                     if day == 0:
                         st.markdown(
-                            "<div style='min-height:80px;background:#f9fafb;"
-                            "border:1px solid #f3f4f6;border-radius:4px'></div>",
+                            "<div style='min-height:10px'></div>",
                             unsafe_allow_html=True,
                         )
                         continue
 
-                    ds = f"{yr}-{mo:02d}-{day:02d}"
+                    ds          = f"{yr}-{mo:02d}-{day:02d}"
                     is_today    = ds == today_str_val
                     is_selected = ds == sel_ds
                     is_holiday  = ds in KR_HOLIDAYS
                     is_sun      = dow == 0
                     is_sat      = dow == 6
 
-                    day_color = "#dc2626" if (is_holiday or is_sun) else "#2563eb" if is_sat else "#111827"
+                    # 클릭 버튼 (선택 날짜 = primary/파란색)
+                    btn_type = "primary" if is_selected else "secondary"
+                    if st.button(
+                        str(day),
+                        key=f"cal_day_{ds}",
+                        use_container_width=True,
+                        type=btn_type,
+                    ):
+                        st.session_state.cal_selected  = ds
+                        st.session_state.cal_year      = int(ds[:4])
+                        st.session_state.cal_month     = int(ds[5:7])
+                        st.rerun()
 
-                    if is_today and is_selected:
-                        bg_color      = "#dbeafe"
-                        border        = "2px solid #1d4ed8"
-                        day_fw        = "700"
-                        day_color_val = "#1d4ed8"
-                    elif is_selected:
-                        bg_color      = "#f0fdf4"
-                        border        = "2px solid #059669"
-                        day_fw        = "700"
-                        day_color_val = "#059669" if not (is_holiday or is_sun) else "#dc2626"
-                    elif is_today:
-                        bg_color      = "#eff6ff"
-                        border        = "1px solid #93c5fd"
-                        day_fw        = "600"
-                        day_color_val = "#1d4ed8"
-                    else:
-                        bg_color      = "#ffffff"
-                        border        = "1px solid #e5e7eb"
-                        day_fw        = "500"
-                        day_color_val = day_color
-
+                    # 날짜 정보 chips (오늘 표시 / 공휴일 / 이벤트)
                     evs = by_date.get(ds, [])
-                    chips_html = ""
-                    for ev in evs[:3]:
-                        chips_html += (
-                            f"<div style='font-size:9px;padding:1px 4px;border-radius:3px;"
+                    chips = ""
+                    if is_today:
+                        chips += (
+                            "<div style='font-size:8px;color:#1d4ed8;"
+                            "font-weight:700;text-align:center;margin:1px 0'>오늘</div>"
+                        )
+                    if is_holiday:
+                        chips += (
+                            f"<div style='font-size:8px;color:#dc2626;font-weight:600;"
+                            f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>"
+                            f"{KR_HOLIDAYS[ds][:6]}</div>"
+                        )
+                    elif is_sun:
+                        chips += (
+                            "<div style='font-size:8px;color:#dc2626;"
+                            "font-weight:600'>일</div>"
+                        )
+                    elif is_sat:
+                        chips += (
+                            "<div style='font-size:8px;color:#2563eb;"
+                            "font-weight:600'>토</div>"
+                        )
+                    for ev in evs[:2]:
+                        chips += (
+                            f"<div style='font-size:8px;padding:1px 3px;border-radius:2px;"
                             f"background:{ev['color']}22;color:{ev['color']};font-weight:600;"
                             f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-                            f"margin:1px 0'>{ev['title'][:10]}{'…' if len(ev['title'])>10 else ''}</div>"
+                            f"margin:1px 0'>"
+                            f"{ev['title'][:8]}{'…' if len(ev['title'])>8 else ''}</div>"
                         )
-                    if len(evs) > 3:
-                        chips_html += f"<div style='font-size:9px;color:#9ca3af'>+{len(evs)-3}개</div>"
-
-                    holiday_label = (
-                        f"<div style='font-size:9px;color:#dc2626;font-weight:600'>{KR_HOLIDAYS[ds]}</div>"
-                        if is_holiday else ""
-                    )
-
-                    st.markdown(
-                        f"<div style='min-height:85px;background:{bg_color};border:{border};"
-                        f"border-radius:5px;padding:3px 4px;overflow:hidden'>"
-                        f"<div style='display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1px'>"
-                        f"<span style='font-size:12px;font-weight:{day_fw};color:{day_color_val}'>{day}</span>"
-                        f"{holiday_label}</div>{chips_html}</div>",
-                        unsafe_allow_html=True,
-                    )
+                    if len(evs) > 2:
+                        chips += (
+                            f"<div style='font-size:8px;color:#9ca3af'>+{len(evs)-2}개</div>"
+                        )
+                    if chips:
+                        st.markdown(chips, unsafe_allow_html=True)
 
     # ── 우측 사이드 패널 ──────────────────────────────────────
     with side_col:
@@ -303,15 +354,17 @@ def render():
         upcoming = [e for e in task_evs if date.fromisoformat(e["date"]) >= today]
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
-        def _task_card(ev, is_past=False):
+        def _task_card_html(ev, is_past=False):
             due_d      = date.fromisoformat(ev["date"])
             is_ov      = due_d < today
             is_soon    = today <= due_d <= in3
+            is_sel_day = ev["date"] == sel_ds
             col        = "#9ca3af" if is_past else ("#dc2626" if is_ov else "#d97706" if is_soon else "#3b82f6")
             badge      = "⬜" if is_past else ("🔴" if is_ov else "🟡" if is_soon else "🔵")
             bc         = "#e5e7eb" if is_past else col
+            hl_border  = "border:2px solid #1d4ed8;box-shadow:0 0 0 2px #dbeafe;" if is_sel_day and not is_past else ""
             text_col   = "#9ca3af" if is_past else "#111827"
-            bg         = "#f9fafb" if is_past else "white"
+            bg         = "#f9fafb" if is_past else ("#eff6ff" if is_sel_day else "white")
             ci         = cfg_units.get(ev.get("cell", ""), {})
             cn         = ci.get("name", "")
             cc         = "#d1d5db" if is_past else ci.get("color", "#9ca3af")
@@ -323,8 +376,8 @@ def render():
             fade   = "opacity:0.65;" if is_past else ""
             return (
                 f"<div style='display:flex;align-items:flex-start;gap:6px;padding:7px 10px;"
-                f"background:{bg};border-radius:7px;border:1px solid {bc};"
-                f"border-left:3px solid {bc};margin:4px 0;font-size:11.5px;{fade}'>"
+                f"background:{bg};border-radius:7px;border-left:3px solid {bc};"
+                f"margin:4px 0;font-size:11.5px;{fade}{hl_border}'>"
                 f"<span>{badge}</span>"
                 f"<div style='flex:1;min-width:0'>"
                 f"<div style='font-weight:600;color:{text_col};white-space:nowrap;"
@@ -335,8 +388,21 @@ def render():
                 f"</div></div></div>"
             )
 
+        def _task_rows(ev_list, is_past=False):
+            for ev in ev_list:
+                st.markdown(_task_card_html(ev, is_past), unsafe_allow_html=True)
+                task_id = ev.get("taskId")
+                if task_id:
+                    if st.button(
+                        "📋 상세",
+                        key=f"cal_tdet_{ev.get('id','')}{is_past}",
+                        use_container_width=True,
+                    ):
+                        st.session_state.detail_task_id = task_id
+                        st.rerun()
+
         if upcoming:
-            st.markdown("".join(_task_card(e, False) for e in upcoming), unsafe_allow_html=True)
+            _task_rows(upcoming, False)
 
         if past:
             st.markdown(
@@ -345,7 +411,7 @@ def render():
                 "⏰ 지나간 업무</div>",
                 unsafe_allow_html=True,
             )
-            st.markdown("".join(_task_card(e, True) for e in past), unsafe_allow_html=True)
+            _task_rows(past, True)
 
         if not task_evs:
             st.info("이달 등록된 Task 마감이 없습니다", icon="📭")
@@ -402,29 +468,13 @@ def render():
                         unsafe_allow_html=True,
                     )
 
-    # ── 일정 직접 추가 ────────────────────────────────────────
-    st.markdown("---")
-    with st.expander("➕ 일정 직접 추가"):
-        with st.form("event_form"):
-            ev_title = st.text_input("일정명 *")
-            col1, col2 = st.columns(2)
-            ev_date  = col1.date_input("날짜", value=date.today())
-            ev_type  = col2.selectbox("유형", list(EV_TYPES.keys()),
-                                      format_func=lambda x: EV_TYPES[x])
-            ev_note   = st.text_input("메모")
-            ev_shared = st.checkbox("전체 공유", value=True)
-            if st.form_submit_button("저장", type="primary"):
-                if ev_title.strip():
-                    user = st.session_state.user
-                    st.session_state.events.append({
-                        "id":     new_id(),
-                        "title":  ev_title.strip(),
-                        "date":   ev_date.isoformat(),
-                        "type":   ev_type,
-                        "note":   ev_note,
-                        "shared": ev_shared,
-                        "cell":   None if user["cell"] == "manager" else user["cell"],
-                        "source": "manual",
-                    })
-                    st.success("일정이 추가됐습니다!")
-                    st.rerun()
+    # ── 업무 상세 팝업 핸들러 ─────────────────────────────────
+    if st.session_state.get("detail_task_id"):
+        det_task = next(
+            (t for t in st.session_state.tasks
+             if t["id"] == st.session_state.detail_task_id),
+            None,
+        )
+        if det_task:
+            _task_detail_popup(det_task)
+        st.session_state.detail_task_id = None

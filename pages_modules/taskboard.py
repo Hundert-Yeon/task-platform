@@ -12,11 +12,83 @@ PRIORITY_LABELS = {"H": "높음", "M": "보통", "L": "낮음"}
 PRIORITY_COLORS = {"H": "#dc2626", "M": "#d97706", "L": "#059669"}
 
 
+def _esc(text: str) -> str:
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+@st.dialog("업무 상세", width="large")
+def _task_detail_popup(task: dict):
+    """업무 상세 정보 팝업"""
+    cfg   = st.session_state.cfg
+    units = cfg.get("units", {})
+    status_map = {s["key"]: s for s in STATUS_LIST}
+
+    unit_info  = units.get(task.get("cell", ""), {})
+    unit_name  = unit_info.get("name", task.get("cell", ""))
+    unit_color = unit_info.get("color", "#6b7280")
+
+    pri        = task.get("pri", "M")
+    pri_label  = PRIORITY_LABELS.get(pri, "보통")
+    pri_color  = PRIORITY_COLORS.get(pri, "#d97706")
+
+    status_info = status_map.get(task.get("status", "todo"), {})
+    status_lbl  = status_info.get("label", "대기")
+    status_col  = status_info.get("color", "#6b7280")
+
+    shared_badge = (
+        "<span style='font-size:12px;color:#059669;font-weight:700'>🌐 전체 공유</span>"
+        if task.get("shared") else ""
+    )
+
+    st.markdown(f"""
+    <div style='display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px'>
+        <span style='background:{unit_color};color:white;font-size:12px;font-weight:700;
+                     padding:3px 10px;border-radius:5px'>{_esc(unit_name)}</span>
+        <span style='background:{pri_color}22;color:{pri_color};font-size:12px;font-weight:700;
+                     padding:3px 10px;border-radius:5px'>{pri_label}</span>
+        <span style='background:{status_col}22;color:{status_col};font-size:12px;font-weight:700;
+                     padding:3px 10px;border-radius:5px'>{status_lbl}</span>
+        {shared_badge}
+    </div>
+    <div style='font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;
+                border-left:4px solid {pri_color};padding-left:12px;line-height:1.4'>
+        {_esc(task.get("title", ""))}
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    col1.info(f"👤 **담당자** : {_esc(task.get('assignee', '미정'))}")
+    col2.info(f"📅 **마감일** : {task.get('due', '미정')}")
+
+    if task.get("desc"):
+        st.markdown("**📝 상세 내용**")
+        st.markdown(
+            f"<div style='background:#f8fafc;border-radius:7px;padding:10px 14px;"
+            f"font-size:13px;color:#374151;border:1px solid #e5e7eb;white-space:pre-wrap'>"
+            f"{_esc(task.get('desc',''))}</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("✏️ 수정하기", type="primary", use_container_width=True):
+            st.session_state.edit_task_id    = task["id"]
+            st.session_state.show_task_modal = True
+            st.rerun()
+    with c2:
+        if st.button("닫기", use_container_width=True):
+            st.rerun()
+
+
 def render():
     user  = st.session_state.user
     cfg   = st.session_state.cfg
     units = cfg.get("units", {})
     is_manager = user["cell"] == "manager"
+
+    if "detail_task_id" not in st.session_state:
+        st.session_state.detail_task_id = None
 
     col_hdr, col_btn = st.columns([3, 1])
     with col_hdr:
@@ -97,19 +169,23 @@ def render():
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # 수정/삭제 버튼
-                    bc1, bc2, bc3 = st.columns([1, 1, 1])
+                    # 상세/수정/상태변경/삭제 버튼
+                    bc1, bc2, bc3, bc4 = st.columns([1, 1, 1, 1])
                     with bc1:
+                        if st.button("상세", key=f"det_{t['id']}", use_container_width=True):
+                            st.session_state.detail_task_id = t["id"]
+                            st.rerun()
+                    with bc2:
                         if st.button("수정", key=f"edit_{t['id']}", use_container_width=True):
                             st.session_state.edit_task_id   = t["id"]
                             st.session_state.show_task_modal = True
-                    with bc2:
+                    with bc3:
                         new_st = _next_status(t["status"])
                         if new_st and st.button(f"→{new_st}", key=f"mv_{t['id']}", use_container_width=True):
                             t["status"] = new_st
                             sync_tasks_to_calendar()
                             st.rerun()
-                    with bc3:
+                    with bc4:
                         if st.button("삭제", key=f"del_{t['id']}", use_container_width=True):
                             st.session_state.tasks = [x for x in st.session_state.tasks if x["id"] != t["id"]]
                             sync_tasks_to_calendar()
@@ -120,6 +196,17 @@ def render():
                 st.session_state.show_task_modal = True
                 st.session_state.edit_task_id    = None
                 st.session_state.default_status  = status["key"]
+
+    # ── 업무 상세 팝업 ───────────────────────────────────────
+    if st.session_state.get("detail_task_id"):
+        det_task = next(
+            (t for t in st.session_state.tasks
+             if t["id"] == st.session_state.detail_task_id),
+            None,
+        )
+        if det_task:
+            _task_detail_popup(det_task)
+        st.session_state.detail_task_id = None
 
     # ── 업무 추가/수정 모달 ───────────────────────────────────
     if st.session_state.get("show_task_modal"):

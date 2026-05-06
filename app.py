@@ -122,13 +122,17 @@ section[data-testid="stSidebar"] {
 
 /* ── Primary 버튼: 진파란색 (로그인·업무추가 등) ── */
 button[data-testid="baseButton-primary"],
-[data-testid="stBaseButton-primary"] {
+[data-testid="stBaseButton-primary"],
+button[data-testid="baseButton-primaryFormSubmit"],
+[data-testid="stBaseButton-primaryFormSubmit"] {
   background: #1d4ed8 !important;
   border: 1px solid #1e40af !important;
   color: white !important;
 }
 button[data-testid="baseButton-primary"]:hover,
-[data-testid="stBaseButton-primary"]:hover {
+[data-testid="stBaseButton-primary"]:hover,
+button[data-testid="baseButton-primaryFormSubmit"]:hover,
+[data-testid="stBaseButton-primaryFormSubmit"]:hover {
   background: #1e40af !important;
   border-color: #1e3a8a !important;
   color: white !important;
