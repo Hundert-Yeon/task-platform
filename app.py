@@ -120,6 +120,15 @@ section[data-testid="stSidebar"] {
   font-weight: 600;
 }
 
+/* ── Secondary 버튼: 컴팩트 (칸반 카드 액션 버튼 등) ── */
+button[data-testid="baseButton-secondary"],
+[data-testid="stBaseButton-secondary"] {
+  font-size: 12px !important;
+  padding: 4px 6px !important;
+  white-space: nowrap !important;
+  line-height: 1.3 !important;
+}
+
 /* ── Primary 버튼: 진파란색 (로그인·업무추가 등) ── */
 button[data-testid="baseButton-primary"],
 [data-testid="stBaseButton-primary"],
