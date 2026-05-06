@@ -20,6 +20,14 @@ DEFAULT_CFG = {
     "branch_name": "인천점",
     "team_name":   "영업기획팀",
     "units":       DEFAULT_UNITS,
+    "menu_visibility": {
+        "dashboard":   True,
+        "tasks":       True,
+        "calendar":    True,
+        "files":       True,
+        "memo":        True,
+        "shared_feed": True,
+    },
 }
 
 KR_HOLIDAYS = {

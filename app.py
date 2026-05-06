@@ -190,7 +190,8 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     # 네비게이션
-    pages = {
+    menu_vis = cfg.get("menu_visibility", {})
+    ALL_PAGES = {
         "📊 대시보드":    "dashboard",
         "✅ Task Board":  "tasks",
         "📅 캘린더":      "calendar",
@@ -198,8 +199,21 @@ with st.sidebar:
         "📝 메모장":      "memo",
     }
     if user["cell"] == "manager":
+        # 팀장: 항상 모든 메뉴 + 어드민
+        pages = dict(ALL_PAGES)
         pages["🌐 전체 공유 피드"] = "shared_feed"
         pages["⚙️ 어드민 설정"]   = "admin"
+    else:
+        # 일반 팀원: 어드민 설정의 menu_visibility 적용
+        pages = {
+            label: key
+            for label, key in ALL_PAGES.items()
+            if menu_vis.get(key, True)
+        }
+
+    # 현재 페이지가 숨겨진 경우 첫 번째 표시 메뉴로 이동
+    if st.session_state.get("current_page") not in pages.values():
+        st.session_state.current_page = next(iter(pages.values()), "dashboard")
 
     if "current_page" not in st.session_state:
         st.session_state.current_page = "dashboard"

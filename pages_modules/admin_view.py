@@ -30,6 +30,33 @@ def render():
 
     st.divider()
 
+    # ── 메뉴 표시 설정 (전체 너비) ───────────────────────────────
+    st.markdown("#### 🗂️ 메뉴 표시 설정")
+    st.caption("일반 팀원에게 보여줄 메뉴를 선택하세요. 팀장은 항상 전체 메뉴를 볼 수 있습니다.")
+
+    MENU_ITEMS = {
+        "dashboard":   "📊 대시보드",
+        "tasks":       "✅ Task Board",
+        "calendar":    "📅 캘린더",
+        "files":       "📁 파일 저장소",
+        "memo":        "📝 메모장",
+        "shared_feed": "🌐 전체 공유 피드",
+    }
+    vis = cfg.get("menu_visibility", {k: True for k in MENU_ITEMS})
+
+    with st.form("menu_vis_form"):
+        cols_m = st.columns(3)
+        new_vis = {}
+        for i, (key, label) in enumerate(MENU_ITEMS.items()):
+            new_vis[key] = cols_m[i % 3].checkbox(label, value=vis.get(key, True), key=f"mvis_{key}")
+        if st.form_submit_button("메뉴 설정 저장", type="primary", use_container_width=True):
+            cfg["menu_visibility"] = new_vis
+            st.session_state.cfg = cfg
+            st.success("메뉴 표시 설정이 저장됐습니다!")
+            st.rerun()
+
+    st.divider()
+
     col_left, col_right = st.columns(2)
 
     # ── 좌: 유닛/셀 관리 ─────────────────────────────────────
