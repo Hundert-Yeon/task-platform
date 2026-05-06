@@ -44,7 +44,7 @@ def _fetch_ical(url: str) -> list:
         req = urllib.request.Request(url.strip(), headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=8) as r:
             raw = r.read().decode("utf-8", errors="ignore")
-        raw = re.sub(r"\r?\n[ \t]", "", raw)  # iCal 줄 이어붙이기(unfold)
+        raw = re.sub(r"\r?\n[ \t]", "", raw)
         events = []
         for block in re.split(r"BEGIN:VEVENT", raw)[1:]:
             block = block.split("END:VEVENT")[0]
@@ -64,11 +64,16 @@ def render():
     st.markdown("### 📅 캘린더")
     st.caption("팀 일정 · Task 마감일 자동 반영 · 공휴일 표기")
 
-    if "cal_year"  not in st.session_state: st.session_state.cal_year  = date.today().year
-    if "cal_month" not in st.session_state: st.session_state.cal_month = date.today().month
+    today         = date.today()
+    today_str_val = today.isoformat()
 
-    yr = st.session_state.cal_year
-    mo = st.session_state.cal_month
+    if "cal_year"     not in st.session_state: st.session_state.cal_year     = today.year
+    if "cal_month"    not in st.session_state: st.session_state.cal_month    = today.month
+    if "cal_selected" not in st.session_state: st.session_state.cal_selected = today_str_val
+
+    yr     = st.session_state.cal_year
+    mo     = st.session_state.cal_month
+    sel_ds = st.session_state.cal_selected
 
     # ── 이벤트 맵 구성 ────────────────────────────────────────
     by_date: dict[str, list] = {}
@@ -92,8 +97,8 @@ def render():
     cal_col, side_col = st.columns([2, 1], gap="medium")
 
     with cal_col:
-        # 월 네비게이션
-        nav1, nav2, nav3 = st.columns([1, 3, 1])
+        # 월 네비게이션 + 날짜 선택기
+        nav1, nav2, nav3, nav4 = st.columns([1, 2, 1, 2])
         with nav1:
             if st.button("‹ 이전", use_container_width=True, key="cal_prev"):
                 if st.session_state.cal_month == 1:
@@ -104,7 +109,7 @@ def render():
                 st.rerun()
         with nav2:
             st.markdown(
-                f"<h4 style='text-align:center;margin:0'>{yr}년 {mo}월</h4>",
+                f"<h4 style='text-align:center;margin:0;padding:6px 0'>{yr}년 {mo}월</h4>",
                 unsafe_allow_html=True,
             )
         with nav3:
@@ -115,11 +120,23 @@ def render():
                 else:
                     st.session_state.cal_month += 1
                 st.rerun()
+        with nav4:
+            picked = st.date_input(
+                "날짜 선택",
+                value=date.fromisoformat(sel_ds),
+                label_visibility="collapsed",
+                key="cal_date_picker",
+            )
+            new_sel = picked.isoformat()
+            if new_sel != sel_ds:
+                st.session_state.cal_selected = new_sel
+                st.session_state.cal_year  = picked.year
+                st.session_state.cal_month = picked.month
+                st.rerun()
 
         # 요일 헤더
-        today_str_val = date.today().isoformat()
-        cal_matrix    = calendar.monthcalendar(yr, mo)
-        day_names     = ["일", "월", "화", "수", "목", "금", "토"]
+        cal_matrix = calendar.monthcalendar(yr, mo)
+        day_names  = ["일", "월", "화", "수", "목", "금", "토"]
         hdr_cols = st.columns(7)
         for i, hc in enumerate(hdr_cols):
             color = "#dc2626" if i == 0 else "#2563eb" if i == 6 else "#374151"
@@ -143,14 +160,34 @@ def render():
                         continue
 
                     ds = f"{yr}-{mo:02d}-{day:02d}"
-                    is_today   = ds == today_str_val
-                    is_holiday = ds in KR_HOLIDAYS
-                    is_sun     = dow == 0
-                    is_sat     = dow == 6
+                    is_today    = ds == today_str_val
+                    is_selected = ds == sel_ds
+                    is_holiday  = ds in KR_HOLIDAYS
+                    is_sun      = dow == 0
+                    is_sat      = dow == 6
 
                     day_color = "#dc2626" if (is_holiday or is_sun) else "#2563eb" if is_sat else "#111827"
-                    bg_color  = "#dbeafe" if is_today else "#ffffff"
-                    border    = "2px solid #1d4ed8" if is_today else "1px solid #e5e7eb"
+
+                    if is_today and is_selected:
+                        bg_color      = "#dbeafe"
+                        border        = "2px solid #1d4ed8"
+                        day_fw        = "700"
+                        day_color_val = "#1d4ed8"
+                    elif is_selected:
+                        bg_color      = "#f0fdf4"
+                        border        = "2px solid #059669"
+                        day_fw        = "700"
+                        day_color_val = "#059669" if not (is_holiday or is_sun) else "#dc2626"
+                    elif is_today:
+                        bg_color      = "#eff6ff"
+                        border        = "1px solid #93c5fd"
+                        day_fw        = "600"
+                        day_color_val = "#1d4ed8"
+                    else:
+                        bg_color      = "#ffffff"
+                        border        = "1px solid #e5e7eb"
+                        day_fw        = "500"
+                        day_color_val = day_color
 
                     evs = by_date.get(ds, [])
                     chips_html = ""
@@ -168,8 +205,6 @@ def render():
                         f"<div style='font-size:9px;color:#dc2626;font-weight:600'>{KR_HOLIDAYS[ds]}</div>"
                         if is_holiday else ""
                     )
-                    day_fw    = "700" if is_today else "500"
-                    day_color_val = "#1d4ed8" if is_today else day_color
 
                     st.markdown(
                         f"<div style='min-height:85px;background:{bg_color};border:{border};"
@@ -182,6 +217,37 @@ def render():
 
     # ── 우측 사이드 패널 ──────────────────────────────────────
     with side_col:
+        # 선택된 날짜 이벤트
+        sel_date       = date.fromisoformat(sel_ds)
+        kr_weekdays    = ["월", "화", "수", "목", "금", "토", "일"]
+        wd             = kr_weekdays[sel_date.weekday()]
+        is_sel_today   = sel_ds == today_str_val
+        date_lbl_color = "#1d4ed8" if is_sel_today else "#059669"
+        date_lbl_extra = " · 오늘" if is_sel_today else ""
+
+        st.markdown(
+            f"<div style='font-size:13px;font-weight:700;color:{date_lbl_color};margin-bottom:8px'>"
+            f"📅 {sel_date.month}월 {sel_date.day}일 ({wd}){date_lbl_extra}</div>",
+            unsafe_allow_html=True,
+        )
+
+        sel_evs = by_date.get(sel_ds, [])
+        if sel_evs:
+            sel_html = ""
+            for ev in sel_evs:
+                c = ev["color"]
+                sel_html += (
+                    f"<div style='font-size:11.5px;padding:5px 9px;border-radius:6px;"
+                    f"background:{c}11;border-left:3px solid {c};margin:3px 0'>"
+                    f"<span style='font-weight:600;color:{c}'>{ev['title']}</span>"
+                    f"</div>"
+                )
+            st.markdown(sel_html, unsafe_allow_html=True)
+        else:
+            st.caption("이 날에 등록된 일정이 없습니다")
+
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
         # 이 달의 주요 업무
         st.markdown(
             "<div style='font-size:13px;font-weight:700;color:#374151;margin-bottom:8px'>"
@@ -196,41 +262,57 @@ def render():
         ]
         task_evs.sort(key=lambda e: e.get("date", ""))
 
-        today = date.today()
-        in3   = today + timedelta(days=3)
+        in3       = today + timedelta(days=3)
+        cfg_units = st.session_state.cfg.get("units", {})
 
-        if task_evs:
-            cfg_units = st.session_state.cfg.get("units", {})
-            task_html = ""
-            for ev in task_evs:
-                due_d      = date.fromisoformat(ev["date"])
-                is_ov      = due_d < today
-                is_soon    = today <= due_d <= in3
-                col        = "#dc2626" if is_ov else "#d97706" if is_soon else "#3b82f6"
-                badge      = "🔴" if is_ov else "🟡" if is_soon else "🔵"
-                cell_info  = cfg_units.get(ev.get("cell", ""), {})
-                cell_name  = cell_info.get("name", "")
-                cell_color = cell_info.get("color", "#9ca3af")
-                cell_badge = (
-                    f"<span style='font-size:9px;font-weight:700;padding:2px 7px;"
-                    f"border-radius:3px;background:{cell_color};color:white;flex-shrink:0'>"
-                    f"{cell_name}</span>"
-                ) if cell_name else ""
-                task_html += (
-                    f"<div style='display:flex;align-items:flex-start;gap:6px;padding:7px 10px;"
-                    f"background:white;border-radius:7px;border:1px solid #e5e7eb;"
-                    f"border-left:3px solid {col};margin:4px 0;font-size:11.5px'>"
-                    f"<span>{badge}</span>"
-                    f"<div style='flex:1;min-width:0'>"
-                    f"<div style='font-weight:600;color:#111827;white-space:nowrap;"
-                    f"overflow:hidden;text-overflow:ellipsis'>{ev['title']}</div>"
-                    f"<div style='display:flex;align-items:center;justify-content:space-between;margin-top:3px'>"
-                    f"<span style='font-size:10px;color:{col};font-family:monospace'>{ev['date']}</span>"
-                    f"{cell_badge}"
-                    f"</div></div></div>"
-                )
-            st.markdown(task_html, unsafe_allow_html=True)
-        else:
+        upcoming = [e for e in task_evs if date.fromisoformat(e["date"]) >= today]
+        past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
+
+        def _task_card(ev, is_past=False):
+            due_d      = date.fromisoformat(ev["date"])
+            is_ov      = due_d < today
+            is_soon    = today <= due_d <= in3
+            col        = "#9ca3af" if is_past else ("#dc2626" if is_ov else "#d97706" if is_soon else "#3b82f6")
+            badge      = "⬜" if is_past else ("🔴" if is_ov else "🟡" if is_soon else "🔵")
+            bc         = "#e5e7eb" if is_past else col
+            text_col   = "#9ca3af" if is_past else "#111827"
+            bg         = "#f9fafb" if is_past else "white"
+            ci         = cfg_units.get(ev.get("cell", ""), {})
+            cn         = ci.get("name", "")
+            cc         = "#d1d5db" if is_past else ci.get("color", "#9ca3af")
+            cell_badge = (
+                f"<span style='font-size:9px;font-weight:700;padding:2px 7px;"
+                f"border-radius:3px;background:{cc};color:white;flex-shrink:0'>{cn}</span>"
+            ) if cn else ""
+            strike = "text-decoration:line-through;" if is_past else ""
+            fade   = "opacity:0.65;" if is_past else ""
+            return (
+                f"<div style='display:flex;align-items:flex-start;gap:6px;padding:7px 10px;"
+                f"background:{bg};border-radius:7px;border:1px solid {bc};"
+                f"border-left:3px solid {bc};margin:4px 0;font-size:11.5px;{fade}'>"
+                f"<span>{badge}</span>"
+                f"<div style='flex:1;min-width:0'>"
+                f"<div style='font-weight:600;color:{text_col};white-space:nowrap;"
+                f"overflow:hidden;text-overflow:ellipsis;{strike}'>{ev['title']}</div>"
+                f"<div style='display:flex;align-items:center;justify-content:space-between;margin-top:3px'>"
+                f"<span style='font-size:10px;color:{col};font-family:monospace'>{ev['date']}</span>"
+                f"{cell_badge}"
+                f"</div></div></div>"
+            )
+
+        if upcoming:
+            st.markdown("".join(_task_card(e, False) for e in upcoming), unsafe_allow_html=True)
+
+        if past:
+            st.markdown(
+                "<div style='font-size:11px;color:#9ca3af;font-weight:600;"
+                "margin:10px 0 4px;padding:5px 0;border-top:1px solid #f3f4f6'>"
+                "⏰ 지나간 업무</div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown("".join(_task_card(e, True) for e in past), unsafe_allow_html=True)
+
+        if not task_evs:
             st.info("이달 등록된 Task 마감이 없습니다", icon="📭")
 
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
