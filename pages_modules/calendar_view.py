@@ -3,10 +3,10 @@ pages_modules/calendar_view.py
 캘린더 페이지
 """
 import re
-import urllib.request
 import streamlit as st
 import calendar
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from urllib.parse import quote
 from utils.state import get_visible_events, new_id, KR_HOLIDAYS, EV_TYPES
 
 TYPE_COLORS = {
@@ -36,28 +36,64 @@ MKT_EVENTS = [
 ]
 
 
-def _fetch_ical(url: str) -> list:
-    """Google Calendar iCal URL에서 이벤트를 파싱합니다"""
-    if not url.strip():
-        return []
+def _ical_escape(text: str) -> str:
+    return str(text).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+def _generate_ics(events: list, cal_name: str = "영업기획팀 일정") -> bytes:
+    """앱 이벤트 목록 → iCal(.ics) 파일 바이트 생성"""
+    now_stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//롯데백화점 영업기획팀//Task Platform//KO",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        f"X-WR-CALNAME:{_ical_escape(cal_name)}",
+        "X-WR-TIMEZONE:Asia/Seoul",
+    ]
+    for ev in events:
+        ds = ev.get("date", "")
+        if not ds:
+            continue
+        try:
+            d_start = date.fromisoformat(ds)
+        except ValueError:
+            continue
+        d_end = d_start + timedelta(days=1)
+        uid   = f"{ev.get('id', ds)}@task-platform"
+        note  = _ical_escape(ev.get("note", "") or ev.get("desc", "") or "")
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{uid}",
+            f"DTSTAMP:{now_stamp}",
+            f"DTSTART;VALUE=DATE:{d_start.strftime('%Y%m%d')}",
+            f"DTEND;VALUE=DATE:{d_end.strftime('%Y%m%d')}",
+            f"SUMMARY:{_ical_escape(ev.get('title',''))}",
+            f"DESCRIPTION:{note}",
+            "END:VEVENT",
+        ]
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines).encode("utf-8")
+
+
+def _gcal_link(ev: dict) -> str:
+    """Google Calendar '일정 추가' 딥링크 생성 (종일 이벤트)"""
+    ds = ev.get("date", "")
+    if not ds:
+        return ""
     try:
-        req = urllib.request.Request(url.strip(), headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=8) as r:
-            raw = r.read().decode("utf-8", errors="ignore")
-        raw = re.sub(r"\r?\n[ \t]", "", raw)
-        events = []
-        for block in re.split(r"BEGIN:VEVENT", raw)[1:]:
-            block = block.split("END:VEVENT")[0]
-            m_sum = re.search(r"^SUMMARY:(.+)$", block, re.MULTILINE)
-            m_dt  = re.search(r"^DTSTART[^:]*:(\d{8})", block, re.MULTILINE)
-            if m_sum and m_dt:
-                summary = (m_sum.group(1).strip()
-                           .replace("\\,", ",").replace("\\n", " ").replace("\\;", ";"))
-                ds = m_dt.group(1)
-                events.append({"title": summary, "date": f"{ds[:4]}-{ds[4:6]}-{ds[6:8]}"})
-        return events
-    except Exception:
-        return []
+        d_start = date.fromisoformat(ds)
+    except ValueError:
+        return ""
+    d_end   = d_start + timedelta(days=1)
+    dates   = f"{d_start.strftime('%Y%m%d')}/{d_end.strftime('%Y%m%d')}"
+    title   = quote(ev.get("title", ""))
+    details = quote(ev.get("note", "") or ev.get("desc", "") or "")
+    return (
+        f"https://www.google.com/calendar/render?action=TEMPLATE"
+        f"&text={title}&dates={dates}&details={details}"
+    )
 
 
 def render():
@@ -90,8 +126,6 @@ def render():
         if ev.get("source") == "task":
             col = TYPE_COLORS["task"]
         add_ev(ev["date"], {"title": ev["title"], "type": ev.get("type", "etc"), "color": col, "full": ev})
-    for ev in st.session_state.get("google_cal_events", []):
-        add_ev(ev["date"], {"title": ev["title"], "type": "gcal", "color": TYPE_COLORS["gcal"]})
 
     # ── 2컬럼 레이아웃 ────────────────────────────────────────
     cal_col, side_col = st.columns([2, 1], gap="medium")
@@ -318,48 +352,55 @@ def render():
 
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-        # Google Calendar 연동
+        # Google Calendar 내보내기
         st.markdown(
-            "<div style='font-size:13px;font-weight:700;color:#374151;margin-bottom:6px'>"
-            "🔗 Google Calendar 연동</div>",
+            "<div style='font-size:13px;font-weight:700;color:#374151;margin-bottom:4px'>"
+            "📤 Google Calendar 공유</div>",
             unsafe_allow_html=True,
         )
-        st.caption("Google Calendar → 설정 → 캘린더 통합 에서 iCal 주소를 복사하세요.")
+        st.caption("이 달 일정을 .ics 파일로 내보내거나, 개별 일정을 Google Calendar에 바로 추가할 수 있습니다.")
 
-        gcal_url = st.text_input(
-            "iCal URL",
-            value=st.session_state.get("google_cal_url", ""),
-            placeholder="https://calendar.google.com/calendar/ical/...",
-            label_visibility="collapsed",
-            key="gcal_url_input",
+        # 이 달 전체 이벤트 → .ics 다운로드
+        export_evs = [
+            e for e in st.session_state.get("events", [])
+            if e.get("date", "").startswith(f"{yr}-{mo:02d}")
+        ]
+        cfg_name   = st.session_state.cfg
+        cal_label  = f"{cfg_name.get('branch_name','')} {cfg_name.get('team_name','')}".strip()
+        ics_bytes  = _generate_ics(export_evs, cal_name=cal_label or "영업기획팀 일정")
+
+        st.download_button(
+            label=f"📥 {mo}월 일정 전체 다운로드 (.ics)",
+            data=ics_bytes,
+            file_name=f"{yr}{mo:02d}_영업기획팀.ics",
+            mime="text/calendar",
+            use_container_width=True,
+            key="ics_download",
         )
+        st.caption("다운로드 후 Google Calendar에서 **설정 → 가져오기**하거나, 파일을 열면 자동으로 추가됩니다.")
 
-        btn_c1, btn_c2 = st.columns(2)
-        with btn_c1:
-            if st.button("🔄 연동하기", use_container_width=True, key="gcal_connect"):
-                st.session_state.google_cal_url = gcal_url
-                if gcal_url.strip():
-                    with st.spinner("가져오는 중..."):
-                        fetched = _fetch_ical(gcal_url)
-                    st.session_state.google_cal_events = fetched
-                    if fetched:
-                        st.toast(f"✅ {len(fetched)}개 이벤트 연동됨")
-                        st.rerun()
-                    else:
-                        st.toast("⚠️ 이벤트를 가져올 수 없습니다")
-                else:
-                    st.session_state.google_cal_events = []
-        with btn_c2:
-            if st.button("❌ 연동 해제", use_container_width=True, key="gcal_disconnect"):
-                st.session_state.google_cal_url    = ""
-                st.session_state.google_cal_events = []
-                st.rerun()
-
-        if st.session_state.get("google_cal_url", "").strip():
-            n = len(st.session_state.get("google_cal_events", []))
-            st.caption(f"✅ 연동 중 · 총 {n}개 이벤트")
-        else:
-            st.caption("미연동 상태")
+        # 선택된 날짜 개별 이벤트 → Google Calendar 직접 추가 링크
+        day_manual_evs = [
+            e for e in st.session_state.get("events", [])
+            if e.get("date") == sel_ds and e.get("source") == "manual"
+        ]
+        if day_manual_evs:
+            st.markdown(
+                f"<div style='font-size:11.5px;font-weight:600;color:#374151;"
+                f"margin:10px 0 4px'>📅 {sel_date.month}/{sel_date.day} 일정 바로 추가</div>",
+                unsafe_allow_html=True,
+            )
+            for ev in day_manual_evs:
+                link = _gcal_link(ev)
+                if link:
+                    st.markdown(
+                        f"<a href='{link}' target='_blank' style='display:block;"
+                        f"font-size:11px;padding:5px 9px;border-radius:6px;"
+                        f"background:#f0fdf4;border:1px solid #bbf7d0;color:#065f46;"
+                        f"text-decoration:none;margin:3px 0'>"
+                        f"<span style='margin-right:5px'>📎</span>{ev['title']}</a>",
+                        unsafe_allow_html=True,
+                    )
 
     # ── 일정 직접 추가 ────────────────────────────────────────
     st.markdown("---")
