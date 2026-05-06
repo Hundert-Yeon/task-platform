@@ -240,8 +240,12 @@ def _render_ai_checklist():
         with st.spinner("AI 분석 중..."):
             st.session_state[cache_key] = get_ai_checklist()
 
+    checklist = st.session_state[cache_key]
+    if not isinstance(checklist, list):
+        checklist = [{"icon": "⚠️", "text": "체크리스트를 불러오는 중 문제가 발생했습니다.", "level": "urgent"}]
+
     items_html = ""
-    for item in st.session_state[cache_key]:
+    for item in checklist:
         level = item.get("level", "normal")
         color = LEVEL_COLORS.get(level, "#93c5fd")
         badge = LEVEL_LABELS.get(level, "확인")

@@ -127,12 +127,13 @@ def render():
                 label_visibility="collapsed",
                 key="cal_date_picker",
             )
-            new_sel = picked.isoformat()
-            if new_sel != sel_ds:
-                st.session_state.cal_selected = new_sel
-                st.session_state.cal_year  = picked.year
-                st.session_state.cal_month = picked.month
-                st.rerun()
+            if picked is not None:
+                new_sel = picked.isoformat()
+                if new_sel != sel_ds:
+                    st.session_state.cal_selected = new_sel
+                    st.session_state.cal_year  = picked.year
+                    st.session_state.cal_month = picked.month
+                    st.rerun()
 
         # 요일 헤더
         cal_matrix = calendar.monthcalendar(yr, mo)
