@@ -4,6 +4,7 @@ pages_modules/memo_view.py  — 메모장
 import streamlit as st
 from datetime import date
 from utils.state import get_visible_memos, new_id
+from utils.ai_helper import extract_action_items
 
 
 def render():
@@ -111,7 +112,7 @@ def render():
             memo["date"]     = date.today().isoformat()
 
         # 하단 툴바
-        col_share, col_ai, col_del = st.columns([2, 2, 1])
+        col_share, col_save, col_ai, col_del = st.columns([2, 1.2, 1.5, 1])
 
         with col_share:
             shared = st.checkbox("🌐 전체 공유",
@@ -122,15 +123,42 @@ def render():
                 msg = "전체 공유로 변경됐습니다" if shared else "공유가 해제됐습니다"
                 st.toast(msg)
 
-        with col_ai:
+        with col_save:
             if st.button("💾 저장", use_container_width=True):
                 memo["date"] = date.today().isoformat()
                 st.toast("메모가 저장됐습니다!", icon="✅")
+
+        with col_ai:
+            if st.button("✦ Action 추출", use_container_width=True):
+                if memo.get("content", "").strip():
+                    with st.spinner("AI 분석 중..."):
+                        result = extract_action_items(memo["content"])
+                    st.session_state[f"action_result_{memo['id']}"] = result
+                else:
+                    st.toast("내용을 먼저 입력하세요.", icon="⚠️")
 
         with col_del:
             if st.button("🗑 삭제", use_container_width=True):
                 st.session_state.memos = [m for m in st.session_state.memos if m["id"] != cur_id]
                 st.session_state.current_memo_id = None
+                st.session_state.pop(f"action_result_{cur_id}", None)
                 st.rerun()
 
         # AI 결과 표시
+        action_result = st.session_state.get(f"action_result_{memo['id']}")
+        if action_result:
+            st.markdown("""
+            <div style="margin-top:10px;background:linear-gradient(135deg,#0f172a,#1e3a5f);
+                        border-radius:9px;padding:12px 15px">
+              <div style="font-size:10.5px;letter-spacing:2px;font-weight:700;color:rgba(255,255,255,0.6);
+                          margin-bottom:8px">✦ AI ACTION ITEMS</div>
+            """, unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='font-size:12.5px;color:rgba(255,255,255,0.9);line-height:1.8;"
+                f"white-space:pre-wrap'>{action_result}</div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+            if st.button("✕ 닫기", key=f"close_action_{memo['id']}", use_container_width=True):
+                st.session_state.pop(f"action_result_{memo['id']}", None)
+                st.rerun()

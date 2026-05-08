@@ -115,7 +115,7 @@ def get_ai_checklist() -> list[dict]:
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-5",
+            model="claude-haiku-4-5-20251001",
             max_tokens=800,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -153,7 +153,7 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-5",
+            model="claude-haiku-4-5-20251001",
             max_tokens=1000,
             system=system,
             messages=messages,
@@ -171,7 +171,7 @@ def extract_action_items(memo_content: str) -> str:
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-5",
+            model="claude-haiku-4-5-20251001",
             max_tokens=500,
             messages=[{
                 "role": "user",
