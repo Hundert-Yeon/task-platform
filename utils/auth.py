@@ -23,23 +23,6 @@ def login_screen():
     </style>
     """, unsafe_allow_html=True)
 
-    # ── 최상단: 점장/부문장 링크 (페이지 플로우 내 배치) ────────
-    top_col_l, top_col_r = st.columns([1, 5])
-    with top_col_l:
-        if st.session_state.get("show_sm_login"):
-            st.markdown(
-                "<span style='font-size:11px;color:#9ca3af;font-weight:300;"
-                "letter-spacing:0.3px'>점장 / 부문장</span>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                "<a href='?sm_login=1' style='text-decoration:none;'>"
-                "<span style='font-size:11px;color:#9ca3af;font-weight:300;"
-                "letter-spacing:0.3px'>점장 / 부문장</span></a>",
-                unsafe_allow_html=True,
-            )
-
     _, col_c, _ = st.columns([1, 2, 1])
 
     with col_c:
@@ -57,9 +40,20 @@ def login_screen():
         # ── 기본 로그인 ─────────────────────────────────────────
         _render_member_login(branch_cfg)
 
-        st.markdown("""
-        <div class="login-hint" style="text-align:center">
-            본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
+        # ── 안내 + 점장 링크 ─────────────────────────────────────
+        if st.session_state.get("show_sm_login"):
+            sm_link = "<span style='font-size:11px;color:#9ca3af;font-weight:300'>점장/부문장 로그인</span>"
+        else:
+            sm_link = ("<a href='?sm_login=1' style='text-decoration:none;'>"
+                       "<span style='font-size:11px;color:#9ca3af;font-weight:300'>"
+                       "점장/부문장 로그인</span></a>")
+
+        st.markdown(f"""
+        <div style="text-align:center;margin-top:14px;line-height:2">
+            <div style="font-size:11px;color:#9ca3af;">
+                본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
+            </div>
+            <div style="margin-top:2px">{sm_link}</div>
         </div>
         """, unsafe_allow_html=True)
 
