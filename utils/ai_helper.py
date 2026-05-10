@@ -1,6 +1,6 @@
 """
 utils/ai_helper.py
-Anthropic API 호출 헬퍼
+OpenAI API 호출 헬퍼
 """
 import streamlit as st
 import json
@@ -10,30 +10,27 @@ from utils.state import EV_TYPES
 
 def _get_api_key() -> str:
     """API 키 조회 순서: session_state(어드민 입력) → secrets.toml → 환경변수"""
-    # 어드민에서 런타임 입력한 키가 있으면 최우선 사용
     runtime_key = st.session_state.get("runtime_api_key", "")
     if runtime_key:
         return runtime_key
-    # secrets.toml
     try:
-        key = st.secrets.get("ANTHROPIC_API_KEY", "")
+        key = st.secrets.get("OPENAI_API_KEY", "")
     except Exception:
         key = ""
-    # 환경변수
     if not key:
         import os
-        key = os.environ.get("ANTHROPIC_API_KEY", "")
+        key = os.environ.get("OPENAI_API_KEY", "")
     return key
 
 
 def get_client():
-    """Anthropic 클라이언트. API 키가 없으면 None 반환."""
+    """OpenAI 클라이언트. API 키가 없으면 None 반환."""
     key = _get_api_key()
     if not key:
         return None
     try:
-        import anthropic
-        return anthropic.Anthropic(api_key=key)
+        from openai import OpenAI
+        return OpenAI(api_key=key)
     except Exception:
         return None
 
@@ -95,12 +92,12 @@ def get_ai_checklist() -> list[dict]:
     client = get_client()
     if client is None:
         return [
-            {"icon": "🔑", "text": "AI 기능을 사용하려면 ANTHROPIC_API_KEY를 설정하세요.", "level": "normal"},
-            {"icon": "📋", "text": ".streamlit/secrets.toml 에 ANTHROPIC_API_KEY = \"sk-...\" 추가", "level": "normal"},
+            {"icon": "🔑", "text": "AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요.", "level": "normal"},
+            {"icon": "📋", "text": "영업기획팀 어드민 > AI API 키 설정에서 입력하세요.", "level": "normal"},
         ]
 
     ctx = build_team_context()
-    prompt = f"""당신은 롯데백화점 인천점 영업기획팀 AI 어시스턴트입니다.
+    prompt = f"""당신은 롯데백화점 인천점 AI 어시스턴트입니다.
 아래 팀 업무 현황을 분석해서 "TODAY'S AI CHECKLIST"를 작성하세요.
 
 규칙:
@@ -114,12 +111,12 @@ def get_ai_checklist() -> list[dict]:
 {ctx}"""
 
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
             max_tokens=800,
             messages=[{"role": "user", "content": prompt}]
         )
-        text = response.content[0].text.strip()
+        text = response.choices[0].message.content.strip()
         text = text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
     except Exception as e:
@@ -132,15 +129,15 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
     """AI 어드바이저 채팅 응답"""
     client = get_client()
     if client is None:
-        return "⚠️ AI 기능을 사용하려면 ANTHROPIC_API_KEY를 설정하세요."
+        return "⚠️ AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요."
 
     ctx = build_team_context()
-    user = st.session_state.get("user", {})
-    cfg  = st.session_state.get("cfg", {})
+    user  = st.session_state.get("user", {})
+    cfg   = st.session_state.get("cfg", {})
     units = cfg.get("units", {})
-    unit_name = units.get(user.get("cell",""), {}).get("name", user.get("cell",""))
+    unit_name = units.get(user.get("cell", ""), {}).get("name", user.get("cell", ""))
 
-    system = f"""당신은 롯데백화점 인천점 영업기획팀 AI 어드바이저입니다.
+    system = f"""당신은 롯데백화점 인천점 AI 어드바이저입니다.
 현재 사용자: {user.get('name','미상')} ({unit_name})
 팀 구성: {', '.join(u['name'] for u in units.values())} (팀장 포함)
 
@@ -149,16 +146,19 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
 위 팀 내부 데이터와 함께 외부 유통업계 트렌드·마케팅 사례·전략 등을 활용해
 실질적이고 구체적인 조언을 제공하세요. 한국어로 친절하고 전문적으로 답변하세요."""
 
-    messages = history[-10:] + [{"role": "user", "content": user_message}]
+    messages = (
+        [{"role": "system", "content": system}]
+        + history[-10:]
+        + [{"role": "user", "content": user_message}]
+    )
 
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
             max_tokens=1000,
-            system=system,
             messages=messages,
         )
-        return response.content[0].text
+        return response.choices[0].message.content
     except Exception as e:
         return f"⚠️ AI 오류가 발생했습니다: {str(e)[:100]}"
 
@@ -167,11 +167,11 @@ def extract_action_items(memo_content: str) -> str:
     """메모에서 Action Item 추출"""
     client = get_client()
     if client is None:
-        return "⚠️ AI 기능을 사용하려면 ANTHROPIC_API_KEY를 설정하세요."
+        return "⚠️ AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요."
 
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
             max_tokens=500,
             messages=[{
                 "role": "user",
@@ -183,6 +183,6 @@ def extract_action_items(memo_content: str) -> str:
 {memo_content}"""
             }]
         )
-        return response.content[0].text
+        return response.choices[0].message.content
     except Exception as e:
         return f"AI 오류: {str(e)[:80]}"

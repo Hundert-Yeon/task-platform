@@ -144,9 +144,12 @@ def render():
 
         st.divider()
 
-        # ── AI API 키 설정 ──────────────────────────────────────
-        st.markdown("#### 🤖 AI API 키 설정")
-        _render_api_key_section()
+        # ── AI API 키 설정 (영업기획팀 전용 — 전체 팀 공용) ────
+        if st.session_state.get("current_team_id") == "sales_planning":
+            st.markdown("#### 🤖 AI API 키 설정")
+            st.caption("여기서 설정한 키는 모든 팀에서 공용으로 사용됩니다.")
+            _render_api_key_section()
+            st.divider()
 
         st.divider()
 
@@ -316,10 +319,10 @@ def _render_api_key_section():
 
     with st.form("api_key_form"):
         new_key = st.text_input(
-            "Anthropic API Key",
+            "OpenAI API Key",
             type="password",
-            placeholder="sk-ant-api...",
-            help="Anthropic Console에서 발급받은 API 키를 입력하세요",
+            placeholder="sk-...",
+            help="OpenAI Platform에서 발급받은 API 키를 입력하세요",
         )
         save_col, test_col, clear_col = st.columns(3)
         save_clicked  = save_col.form_submit_button("💾 저장",   type="primary", use_container_width=True)
@@ -330,16 +333,13 @@ def _render_api_key_section():
         if not new_key.strip():
             st.error("API 키를 입력해주세요.")
         elif not new_key.strip().startswith("sk-"):
-            st.error("올바른 Anthropic API 키 형식이 아닙니다 (sk-ant-... 로 시작해야 합니다).")
+            st.error("올바른 OpenAI API 키 형식이 아닙니다 (sk- 로 시작해야 합니다).")
         else:
             key = new_key.strip()
-            # 1) 세션에 즉시 적용
             st.session_state.runtime_api_key = key
-            # 2) .streamlit/secrets.toml 에 영구 저장
             _save_key_to_secrets(key)
-            # 3) AI 체크리스트 캐시 무효화 (새 키로 다시 생성)
             st.session_state.pop("ai_checklist_cache", None)
-            st.success("API 키가 저장됐습니다! AI 기능이 활성화됩니다.")
+            st.success("API 키가 저장됐습니다! 전체 팀 AI 기능이 활성화됩니다.")
             st.rerun()
 
     if test_clicked:
@@ -363,21 +363,20 @@ def _render_api_key_section():
 
 
 def _save_key_to_secrets(api_key: str):
-    """secrets.toml 에 ANTHROPIC_API_KEY 를 저장 (앱 재시작 후에도 유지)"""
+    """secrets.toml 에 OPENAI_API_KEY 를 저장 (앱 재시작 후에도 유지)"""
     secrets_dir  = pathlib.Path(__file__).parent.parent / ".streamlit"
     secrets_file = secrets_dir / "secrets.toml"
 
     try:
         secrets_dir.mkdir(exist_ok=True)
-        # 기존 내용 읽기
         lines = []
         if secrets_file.exists():
             lines = secrets_file.read_text(encoding="utf-8").splitlines()
 
-        # ANTHROPIC_API_KEY 라인 제거 후 재삽입
-        lines = [l for l in lines if not l.strip().startswith("ANTHROPIC_API_KEY")]
+        lines = [l for l in lines if not l.strip().startswith("OPENAI_API_KEY")
+                                  and not l.strip().startswith("ANTHROPIC_API_KEY")]
         if api_key:
-            lines.append(f'ANTHROPIC_API_KEY = "{api_key}"')
+            lines.append(f'OPENAI_API_KEY = "{api_key}"')
 
         secrets_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
     except Exception as e:
@@ -387,11 +386,11 @@ def _save_key_to_secrets(api_key: str):
 def _test_api_key(api_key: str):
     """API 키 유효성 테스트. 성공이면 True, 실패면 오류 메시지 문자열 반환."""
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-        client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=10,
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=5,
             messages=[{"role": "user", "content": "ping"}],
         )
         return True
