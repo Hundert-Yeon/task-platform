@@ -252,41 +252,6 @@ def _build_month_html(yr: int, mo: int, by_date: dict, sel_ds: str, today_str_va
 
 
 def render():
-    # ── 우측 패널 카드 버튼 CSS ───────────────────────────────
-    st.markdown("""
-    <style>
-    /* 이달의 주요업무 카드 버튼 공통 스타일 */
-    [data-testid="stMarkdownContainer"]:has(.ctask-marker)
-      + [data-testid="stButton"] > button {
-        text-align: left !important;
-        white-space: pre-wrap !important;
-        height: auto !important;
-        min-height: 50px !important;
-        padding: 8px 11px !important;
-        background: white !important;
-        border: 1.5px solid #e5e7eb !important;
-        border-radius: 8px !important;
-        line-height: 1.6 !important;
-        font-size: 11.5px !important;
-        font-weight: 500 !important;
-        color: #374151 !important;
-        word-break: break-word !important;
-    }
-    [data-testid="stMarkdownContainer"]:has(.ctask-marker)
-      + [data-testid="stButton"] > button:hover {
-        background: #f8fafc !important;
-        border-color: #93c5fd !important;
-        color: #1d4ed8 !important;
-    }
-    /* 선택 날짜 업무: 볼드 테두리 */
-    [data-testid="stMarkdownContainer"]:has(.ctask-marker-sel)
-      + [data-testid="stButton"] > button {
-        border: 2.5px solid #1d4ed8 !important;
-        background: #eff6ff !important;
-        color: #1d4ed8 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
     # ── 헤더 ─────────────────────────────────────────────────
     col_hdr, col_btn = st.columns([3, 1])
@@ -308,17 +273,24 @@ def render():
     today         = date.today()
     today_str_val = today.isoformat()
 
-    # 날짜 링크 클릭 시 query param으로 선택 날짜 수신
-    q_day = st.query_params.get("cal_day", None)
+    # ── query param 처리 (날짜 클릭 / 업무 카드 클릭) ──────────
+    task_det = st.query_params.get("task_det", None)
+    q_day    = st.query_params.get("cal_day",  None)
+
+    if task_det:
+        st.session_state.detail_task_id = task_det
     if q_day:
         try:
             q_d = date.fromisoformat(q_day)
             st.session_state.cal_selected = q_day
             st.session_state.cal_year     = q_d.year
             st.session_state.cal_month    = q_d.month
-            st.query_params.clear()
         except ValueError:
-            st.query_params.clear()
+            pass
+
+    if task_det or q_day:
+        st.query_params.clear()   # 파라미터 제거 후 자동 rerun
+        st.stop()
 
     if "cal_year"     not in st.session_state: st.session_state.cal_year     = today.year
     if "cal_month"    not in st.session_state: st.session_state.cal_month    = today.month
@@ -453,6 +425,7 @@ def render():
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
         def _task_rows(ev_list, is_past: bool = False):
+            cards_html = ""
             for ev in ev_list:
                 task_id = ev.get("taskId")
                 if not task_id:
@@ -462,23 +435,40 @@ def render():
                 is_soon = today <= due_d <= in3
                 ci      = cfg_units.get(ev.get("cell", ""), {})
                 cn      = ci.get("name", "")
+                cc      = "#d1d5db" if is_past else ci.get("color", "#9ca3af")
 
-                badge  = "⬜" if is_past else ("🔴" if is_ov else "🟡" if is_soon else "🔵")
-                title  = ev["title"].replace("[Task] ", "")
-                label  = f"{badge} {title}\n📅 {ev['date']}{' · ' + cn if cn else ''}"
+                badge   = "⬜" if is_past else ("🔴" if is_ov else "🟡" if is_soon else "🔵")
+                title   = ev["title"].replace("[Task] ", "")
+                l_color = "#d1d5db" if is_past else (
+                    "#dc2626" if is_ov else "#d97706" if is_soon else "#3b82f6"
+                )
 
-                # 선택 날짜 여부 → 마커 CSS 클래스 결정
                 is_sel_task = ev["date"] == sel_ds
-                marker_cls  = "ctask-marker-sel" if is_sel_task else "ctask-marker"
-                st.markdown(f'<div class="{marker_cls}"></div>', unsafe_allow_html=True)
+                card_border = "2.5px solid #1d4ed8" if is_sel_task else "1.5px solid #e5e7eb"
+                card_bg     = "#eff6ff" if is_sel_task else ("#fafafa" if is_past else "white")
+                strike      = "text-decoration:line-through;" if is_past else ""
+                fade        = "opacity:0.65;" if is_past else ""
 
-                if st.button(
-                    label,
-                    key=f"cal_tdet_{ev.get('id','')}{is_past}",
-                    use_container_width=True,
-                ):
-                    st.session_state.detail_task_id = task_id
-                    st.rerun()
+                cell_badge = (
+                    f"<span style='font-size:10px;font-weight:700;padding:1px 6px;"
+                    f"border-radius:3px;background:{cc};color:white;margin-left:6px'>{cn}</span>"
+                ) if cn else ""
+
+                cards_html += (
+                    f"<a href='?task_det={task_id}' style='display:block;text-decoration:none;"
+                    f"background:{card_bg};border:{card_border};"
+                    f"border-left:3px solid {l_color};"
+                    f"border-radius:8px;padding:9px 12px;margin:4px 0;"
+                    f"cursor:pointer;{fade}'>"
+                    f"<div style='font-size:12px;font-weight:600;color:#1f2937;"
+                    f"line-height:1.5;word-break:keep-all;{strike}'>{badge} {title}</div>"
+                    f"<div style='font-size:10.5px;color:#6b7280;margin-top:4px;"
+                    f"display:flex;align-items:center'>"
+                    f"📅 {ev['date']}{cell_badge}"
+                    f"</div></a>"
+                )
+            if cards_html:
+                st.markdown(cards_html, unsafe_allow_html=True)
 
         if upcoming:
             _task_rows(upcoming, False)
