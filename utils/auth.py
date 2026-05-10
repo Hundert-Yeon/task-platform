@@ -17,39 +17,29 @@ def login_screen():
         st.query_params.clear()
         st.stop()
 
-    st.markdown("""
+    if st.session_state.get("show_sm_login"):
+        sm_link_html = """
+        <span style="font-size:11px;color:#9ca3af;font-weight:300;letter-spacing:0.3px">
+          점장 / 부문장
+        </span>"""
+    else:
+        sm_link_html = """
+        <a href="?sm_login=1" style="text-decoration:none">
+          <span style="font-size:11px;color:#9ca3af;font-weight:300;letter-spacing:0.3px">
+            점장 / 부문장
+          </span>
+        </a>"""
+
+    st.markdown(f"""
     <style>
-    body { background: linear-gradient(135deg,#0c1a35,#1a3461,#0f172a) !important; }
-    .login-hint { font-size:11px;color:rgba(255,255,255,0.22);margin-top:14px;line-height:1.7; }
+    body {{ background: linear-gradient(135deg,#0c1a35,#1a3461,#0f172a) !important; }}
+    .login-hint {{ font-size:11px;color:rgba(255,255,255,0.22);margin-top:14px;line-height:1.7; }}
     </style>
     <div style="background:linear-gradient(135deg,#0c1a35,#1a3461,#0f172a);position:fixed;inset:0;z-index:-1"></div>
+    <div style="position:fixed;top:14px;left:18px;z-index:10">{sm_link_html}</div>
     """, unsafe_allow_html=True)
 
-    col_l, col_c, col_r = st.columns([1, 2, 1])
-
-    # ── 좌상단: 점장/부문장 진입 링크 ───────────────────────────
-    with col_l:
-        st.markdown("<div style='padding-top:24px'></div>", unsafe_allow_html=True)
-        if st.session_state.get("show_sm_login"):
-            st.markdown("""
-            <div style="padding:6px 10px;background:rgba(255,255,255,0.07);
-                        border:1px solid rgba(255,255,255,0.15);border-radius:7px;
-                        display:inline-block">
-              <span style="font-size:11px;color:rgba(255,255,255,0.55);font-weight:600;
-                           letter-spacing:0.5px">점장 / 부문장</span>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <a href="?sm_login=1" style="text-decoration:none">
-              <div style="padding:6px 10px;background:rgba(255,255,255,0.05);
-                          border:1px solid rgba(255,255,255,0.12);border-radius:7px;
-                          display:inline-block;cursor:pointer">
-                <span style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:500;
-                             letter-spacing:0.5px">점장 / 부문장</span>
-              </div>
-            </a>
-            """, unsafe_allow_html=True)
+    _, col_c, _ = st.columns([1, 2, 1])
 
     with col_c:
         # ── 브랜딩 ──────────────────────────────────────────────
