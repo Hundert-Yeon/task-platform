@@ -10,16 +10,24 @@ def login_screen():
     branch_cfg = st.session_state.get("branch_cfg", {})
     branch     = branch_cfg.get("branch_name", "인천점")
 
-    # 점장 로그인 토글 (query param 방식)
-    q_sm = st.query_params.get("sm_login", None)
-    if q_sm:
-        st.session_state.show_sm_login = True
-        st.query_params.clear()
-        st.stop()
-
     st.markdown("""
     <style>
-    .login-hint { font-size:11px;color:#9ca3af;margin-top:14px;line-height:1.7; }
+    /* 점장 토글 버튼 - 링크처럼 보이게 */
+    div[data-testid="stButton"].sm-toggle > button {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #9ca3af !important;
+        font-size: 11px !important;
+        font-weight: 300 !important;
+        padding: 0 4px !important;
+        text-decoration: underline;
+        white-space: nowrap !important;
+    }
+    div[data-testid="stButton"].sm-toggle > button:hover {
+        color: #6b7280 !important;
+        background: transparent !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -37,30 +45,32 @@ def login_screen():
 
         st.divider()
 
-        # ── 기본 로그인 ─────────────────────────────────────────
-        _render_member_login(branch_cfg)
+        show_sm = st.session_state.get("show_sm_login", False)
 
-        # ── 안내 + 점장 링크 ─────────────────────────────────────
-        if st.session_state.get("show_sm_login"):
-            sm_link = "<span style='font-size:11px;color:#9ca3af;font-weight:300'>점장/부문장 로그인</span>"
-        else:
-            sm_link = ("<a href='?sm_login=1' style='text-decoration:none;'>"
-                       "<span style='font-size:11px;color:#9ca3af;font-weight:300'>"
-                       "점장/부문장 로그인</span></a>")
+        if not show_sm:
+            # ── 일반 로그인 ─────────────────────────────────────
+            _render_member_login(branch_cfg)
 
-        st.markdown(f"""
-        <div style="text-align:center;margin-top:14px;line-height:2">
-            <div style="font-size:11px;color:#9ca3af;">
+            # 안내문
+            st.markdown("""
+            <div style="text-align:center;margin-top:14px;font-size:11px;color:#9ca3af;line-height:1.7">
                 본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
             </div>
-            <div style="margin-top:2px">{sm_link}</div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        # ── 점장/부문장 로그인 폼 (클릭 후 표시) ────────────────
-        if st.session_state.get("show_sm_login"):
-            st.markdown("<div style='margin-top:20px'></div>", unsafe_allow_html=True)
-            _render_store_manager_section(branch_cfg)
+            # 점장 토글 버튼
+            _, btn_col, _ = st.columns([1, 1, 1])
+            with btn_col:
+                st.markdown('<div class="sm-toggle">', unsafe_allow_html=True)
+                if st.button("점장/부문장 로그인", use_container_width=True,
+                             key="sm_login_toggle"):
+                    st.session_state.show_sm_login = True
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        else:
+            # ── 점장/부문장 로그인 ──────────────────────────────
+            _render_store_manager_login(branch_cfg)
 
 
 def _render_member_login(branch_cfg: dict):
@@ -101,7 +111,6 @@ def _render_member_login(branch_cfg: dict):
 
     name_input = st.text_input("이름", placeholder="이름을 입력하세요", key="login_name")
 
-    # 뱃지 프리뷰
     if selected_cell and name_input.strip():
         if selected_cell == "manager":
             badge_color = "#1d4ed8"
@@ -151,41 +160,42 @@ def _render_member_login(branch_cfg: dict):
         st.rerun()
 
 
-def _render_store_manager_section(branch_cfg: dict):
-    """점장/부문장 로그인 영역 (하단, 눈에 안 띄게)"""
+def _render_store_manager_login(branch_cfg: dict):
+    """점장/부문장 로그인 화면"""
     st.markdown("""
-    <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;margin-bottom:8px">
-      <span style="font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:1px">점장 / 부문장</span>
+    <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:#374151;letter-spacing:0.5px">
+            점장 / 부문장 로그인
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    name_input = st.text_input("이름", placeholder="이름", key="login_sm_name")
-    pw_input   = st.text_input("비밀번호", type="password", placeholder="••••",
+    name_input = st.text_input("이름", placeholder="이름을 입력하세요", key="login_sm_name")
+    pw_input   = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요",
                                key="login_sm_pw")
 
-    c1, c2 = st.columns([3, 1])
-    with c1:
-        if st.button("입장", use_container_width=True, type="primary", key="login_sm_btn"):
-            if not name_input.strip():
-                st.error("이름을 입력해주세요")
-                return
-            store_pw = branch_cfg.get("store_manager_pw", "0000")
-            if pw_input != store_pw:
-                st.error("비밀번호가 올바르지 않습니다")
-                return
+    if st.button("입장하기 →", use_container_width=True, type="primary", key="login_sm_btn"):
+        if not name_input.strip():
+            st.error("이름을 입력해주세요")
+            return
+        store_pw = branch_cfg.get("store_manager_pw", "0000")
+        if pw_input != store_pw:
+            st.error("비밀번호가 올바르지 않습니다")
+            return
 
-            st.session_state.logged_in    = True
-            st.session_state.current_page = "dashboard"
-            st.session_state.pop("sm_team_confirmed", None)
-            st.session_state.show_sm_login = False
-            st.session_state.user = {
-                "cell":    "store_manager",
-                "name":    name_input.strip(),
-                "team_id": None,
-                "role":    "store_manager",
-            }
-            st.rerun()
-    with c2:
-        if st.button("닫기", use_container_width=True, key="login_sm_close"):
-            st.session_state.show_sm_login = False
-            st.rerun()
+        st.session_state.logged_in    = True
+        st.session_state.current_page = "dashboard"
+        st.session_state.pop("sm_team_confirmed", None)
+        st.session_state.show_sm_login = False
+        st.session_state.user = {
+            "cell":    "store_manager",
+            "name":    name_input.strip(),
+            "team_id": None,
+            "role":    "store_manager",
+        }
+        st.rerun()
+
+    st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
+    if st.button("← 일반 로그인으로 돌아가기", use_container_width=True, key="sm_back_btn"):
+        st.session_state.show_sm_login = False
+        st.rerun()
