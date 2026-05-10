@@ -17,27 +17,28 @@ def login_screen():
         st.query_params.clear()
         st.stop()
 
-    if st.session_state.get("show_sm_login"):
-        sm_link_html = """
-        <span style="font-size:11px;color:#9ca3af;font-weight:300;letter-spacing:0.3px">
-          점장 / 부문장
-        </span>"""
-    else:
-        sm_link_html = """
-        <a href="?sm_login=1" style="text-decoration:none">
-          <span style="font-size:11px;color:#9ca3af;font-weight:300;letter-spacing:0.3px">
-            점장 / 부문장
-          </span>
-        </a>"""
-
-    st.markdown(f"""
+    st.markdown("""
     <style>
-    body {{ background: linear-gradient(135deg,#0c1a35,#1a3461,#0f172a) !important; }}
-    .login-hint {{ font-size:11px;color:rgba(255,255,255,0.22);margin-top:14px;line-height:1.7; }}
+    .login-hint { font-size:11px;color:#9ca3af;margin-top:14px;line-height:1.7; }
     </style>
-    <div style="background:linear-gradient(135deg,#0c1a35,#1a3461,#0f172a);position:fixed;inset:0;z-index:-1"></div>
-    <div style="position:fixed;top:14px;left:18px;z-index:10">{sm_link_html}</div>
     """, unsafe_allow_html=True)
+
+    # ── 최상단: 점장/부문장 링크 (페이지 플로우 내 배치) ────────
+    top_col_l, top_col_r = st.columns([1, 5])
+    with top_col_l:
+        if st.session_state.get("show_sm_login"):
+            st.markdown(
+                "<span style='font-size:11px;color:#9ca3af;font-weight:300;"
+                "letter-spacing:0.3px'>점장 / 부문장</span>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                "<a href='?sm_login=1' style='text-decoration:none;'>"
+                "<span style='font-size:11px;color:#9ca3af;font-weight:300;"
+                "letter-spacing:0.3px'>점장 / 부문장</span></a>",
+                unsafe_allow_html=True,
+            )
 
     _, col_c, _ = st.columns([1, 2, 1])
 
