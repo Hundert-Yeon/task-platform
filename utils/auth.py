@@ -1,6 +1,6 @@
 """
 utils/auth.py
-로그인 화면 렌더링 (팀원/팀장/점장)
+로그인 화면 렌더링
 """
 import streamlit as st
 from utils.state import _load_team, sync_tasks_to_calendar
@@ -10,55 +10,72 @@ def login_screen():
     branch_cfg = st.session_state.get("branch_cfg", {})
     branch     = branch_cfg.get("branch_name", "인천점")
 
+    # 점장 로그인 토글 (query param 방식)
+    q_sm = st.query_params.get("sm_login", None)
+    if q_sm:
+        st.session_state.show_sm_login = True
+        st.query_params.clear()
+        st.stop()
+
     st.markdown("""
     <style>
     body { background: linear-gradient(135deg,#0c1a35,#1a3461,#0f172a) !important; }
-    .login-branch  { font-size: 22px; font-weight: 700; color: #1a3461; letter-spacing:2px; margin-top:10px; }
-    .login-hint    { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 14px; line-height:1.7; }
+    .login-hint { font-size:11px;color:rgba(255,255,255,0.22);margin-top:14px;line-height:1.7; }
     </style>
     <div style="background:linear-gradient(135deg,#0c1a35,#1a3461,#0f172a);position:fixed;inset:0;z-index:-1"></div>
     """, unsafe_allow_html=True)
 
     col_l, col_c, col_r = st.columns([1, 2, 1])
     with col_c:
+        # ── 브랜딩 ──────────────────────────────────────────────
         st.markdown(f"""
         <div style="text-align:center;padding:20px 0 10px">
             <div style="font-size:28px;font-weight:900;letter-spacing:4px;color:#c9b99a">LOTTE</div>
             <div style="font-size:13px;color:#8a7d6e;letter-spacing:3px">DEPARTMENT STORE</div>
-            <div class="login-branch">{branch}</div>
+            <div style="font-size:22px;font-weight:700;color:#1a3461;letter-spacing:2px;margin-top:8px">{branch}</div>
         </div>
         """, unsafe_allow_html=True)
 
         st.divider()
 
-        tab_member, tab_store = st.tabs(["👤 팀원 / 팀장 로그인", "👑 점장 로그인"])
-
-        with tab_member:
-            _render_member_login(branch_cfg)
-
-        with tab_store:
-            _render_store_manager_login(branch_cfg)
+        # ── 기본 로그인 ─────────────────────────────────────────
+        _render_member_login(branch_cfg)
 
         st.markdown("""
         <div class="login-hint" style="text-align:center">
-            각 유닛·셀·파트 멤버는 본인 소속 업무만 기본 열람됩니다.<br>
-            전체 공유 체크 시 전 팀원에게 공개됩니다.
+            본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
         </div>
         """, unsafe_allow_html=True)
 
+        # ── 점장/부문장 로그인 (하단, 눈에 안 띄게) ────────────
+        st.markdown("<div style='margin-top:28px'></div>", unsafe_allow_html=True)
+
+        if st.session_state.get("show_sm_login"):
+            _render_store_manager_section(branch_cfg)
+        else:
+            # 클릭해야만 보이는 매우 작은 링크
+            st.markdown("""
+            <div style="text-align:left">
+              <a href="?sm_login=1"
+                 style="font-size:10px;color:rgba(255,255,255,0.18);
+                        text-decoration:none;letter-spacing:0.5px">
+                관리자
+              </a>
+            </div>
+            """, unsafe_allow_html=True)
+
 
 def _render_member_login(branch_cfg: dict):
-    """팀원 / 팀장 탭"""
+    """일반 팀원 / 팀장 로그인"""
     teams_data = st.session_state.get("teams_data", {})
 
-    # 팀 선택
     team_options = {tid: td["cfg"]["team_name"] for tid, td in teams_data.items()}
     if not team_options:
         st.error("등록된 팀이 없습니다.")
         return
 
     selected_team_id = st.selectbox(
-        "팀 선택",
+        "소속 팀",
         options=list(team_options.keys()),
         format_func=lambda x: team_options[x],
         index=None,
@@ -76,7 +93,7 @@ def _render_member_login(branch_cfg: dict):
     unit_options["manager"] = f"👑 {team_cfg['team_name']} 팀장"
 
     selected_cell = st.selectbox(
-        "소속 / 역할 선택",
+        "소속 / 역할",
         options=list(unit_options.keys()),
         format_func=lambda x: unit_options[x],
         index=None,
@@ -122,7 +139,6 @@ def _render_member_login(branch_cfg: dict):
                 st.error("비밀번호가 올바르지 않습니다")
                 return
 
-        # 선택된 팀 활성화
         _load_team(selected_team_id)
         sync_tasks_to_calendar()
 
@@ -137,36 +153,41 @@ def _render_member_login(branch_cfg: dict):
         st.rerun()
 
 
-def _render_store_manager_login(branch_cfg: dict):
-    """점장 탭"""
+def _render_store_manager_section(branch_cfg: dict):
+    """점장/부문장 로그인 영역 (하단, 눈에 안 띄게)"""
     st.markdown("""
-    <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;
-                padding:10px 14px;font-size:12.5px;color:#1e40af;margin-bottom:12px">
-      <b>점장/부문장</b> 계정으로 로그인하면 모든 팀의 업무를 열람할 수 있습니다.<br>
-      어드민 설정 권한은 없습니다.
+    <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;margin-bottom:8px">
+      <span style="font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:1px">점장 / 부문장</span>
     </div>
     """, unsafe_allow_html=True)
 
-    name_input = st.text_input("이름", placeholder="이름을 입력하세요", key="login_sm_name")
-    pw_input   = st.text_input("점장 비밀번호", type="password", placeholder="비밀번호 입력",
+    name_input = st.text_input("이름", placeholder="이름", key="login_sm_name")
+    pw_input   = st.text_input("비밀번호", type="password", placeholder="••••",
                                key="login_sm_pw")
 
-    if st.button("입장하기 →", use_container_width=True, type="primary", key="login_sm_btn"):
-        if not name_input.strip():
-            st.error("이름을 입력해주세요")
-            return
-        store_pw = branch_cfg.get("store_manager_pw", "0000")
-        if pw_input != store_pw:
-            st.error("비밀번호가 올바르지 않습니다")
-            return
+    c1, c2 = st.columns([3, 1])
+    with c1:
+        if st.button("입장", use_container_width=True, type="primary", key="login_sm_btn"):
+            if not name_input.strip():
+                st.error("이름을 입력해주세요")
+                return
+            store_pw = branch_cfg.get("store_manager_pw", "0000")
+            if pw_input != store_pw:
+                st.error("비밀번호가 올바르지 않습니다")
+                return
 
-        st.session_state.logged_in    = True
-        st.session_state.current_page = "dashboard"
-        st.session_state.pop("sm_team_confirmed", None)
-        st.session_state.user = {
-            "cell":    "store_manager",
-            "name":    name_input.strip(),
-            "team_id": None,
-            "role":    "store_manager",
-        }
-        st.rerun()
+            st.session_state.logged_in    = True
+            st.session_state.current_page = "dashboard"
+            st.session_state.pop("sm_team_confirmed", None)
+            st.session_state.show_sm_login = False
+            st.session_state.user = {
+                "cell":    "store_manager",
+                "name":    name_input.strip(),
+                "team_id": None,
+                "role":    "store_manager",
+            }
+            st.rerun()
+    with c2:
+        if st.button("닫기", use_container_width=True, key="login_sm_close"):
+            st.session_state.show_sm_login = False
+            st.rerun()
