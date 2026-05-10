@@ -1,6 +1,6 @@
 """
 pages_modules/calendar_view.py
-캘린더 페이지
+캘린더 페이지 — HTML 테이블 기반 Google Calendar 스타일
 """
 import streamlit as st
 import calendar
@@ -16,7 +16,6 @@ TYPE_COLORS = {
     "meeting":  "#059669",
     "holiday":  "#f59e0b",
     "etc":      "#7c3aed",
-    "gcal":     "#e91e63",
 }
 
 MKT_EVENTS = [
@@ -44,7 +43,7 @@ def _generate_ics(events: list, cal_name: str = "영업기획팀 일정") -> byt
     now_stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
     lines = [
         "BEGIN:VCALENDAR", "VERSION:2.0",
-        "PRODID:-//롯데백화점 영업기획팀//Task Platform//KO",
+        "PRODID:-//영업기획팀//Task Platform//KO",
         "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
         f"X-WR-CALNAME:{_ical_escape(cal_name)}", "X-WR-TIMEZONE:Asia/Seoul",
     ]
@@ -58,7 +57,7 @@ def _generate_ics(events: list, cal_name: str = "영업기획팀 일정") -> byt
             continue
         d_end = d_start + timedelta(days=1)
         uid  = f"{ev.get('id', ds)}@task-platform"
-        note = _ical_escape(ev.get("note", "") or ev.get("desc", "") or "")
+        note = _ical_escape(ev.get("note", "") or "")
         lines += [
             "BEGIN:VEVENT", f"UID:{uid}", f"DTSTAMP:{now_stamp}",
             f"DTSTART;VALUE=DATE:{d_start.strftime('%Y%m%d')}",
@@ -81,7 +80,7 @@ def _gcal_link(ev: dict) -> str:
     d_end   = d_start + timedelta(days=1)
     dates   = f"{d_start.strftime('%Y%m%d')}/{d_end.strftime('%Y%m%d')}"
     title   = quote(ev.get("title", ""))
-    details = quote(ev.get("note", "") or ev.get("desc", "") or "")
+    details = quote(ev.get("note", "") or "")
     return (
         f"https://www.google.com/calendar/render?action=TEMPLATE"
         f"&text={title}&dates={dates}&details={details}"
@@ -100,7 +99,6 @@ def _event_form_dialog():
         s1, s2 = st.columns(2)
         submitted = s1.form_submit_button("저장", type="primary", use_container_width=True)
         cancelled = s2.form_submit_button("취소", use_container_width=True)
-
     if submitted and ev_title.strip():
         user = st.session_state.user
         st.session_state.events.append({
@@ -116,88 +114,181 @@ def _event_form_dialog():
         st.rerun()
 
 
+def _build_month_html(yr: int, mo: int, by_date: dict, sel_ds: str, today_str_val: str) -> str:
+    """Google Calendar 스타일 월간 HTML 테이블 생성"""
+    day_names  = ["일", "월", "화", "수", "목", "금", "토"]
+    cal_matrix = calendar.monthcalendar(yr, mo)
+
+    # 요일 헤더
+    hdr_cells = ""
+    for i, d in enumerate(day_names):
+        color = "#dc2626" if i == 0 else "#2563eb" if i == 6 else "#374151"
+        hdr_cells += (
+            f"<th style='padding:5px 2px;font-size:11px;font-weight:700;"
+            f"text-align:center;background:#f9fafb;border:1px solid #e5e7eb;"
+            f"color:{color}'>{d}</th>"
+        )
+
+    # 날짜 행
+    rows_html = ""
+    for week in cal_matrix:
+        cells_html = ""
+        for dow, day in enumerate(week):
+            if day == 0:
+                cells_html += (
+                    "<td style='border:1px solid #f0f0f0;background:#fafafa;"
+                    "height:85px;vertical-align:top'></td>"
+                )
+                continue
+
+            ds          = f"{yr}-{mo:02d}-{day:02d}"
+            is_today    = ds == today_str_val
+            is_sel      = ds == sel_ds
+            is_holiday  = ds in KR_HOLIDAYS
+            is_sun      = dow == 0
+            is_sat      = dow == 6
+
+            # 셀 배경·테두리
+            if is_sel:
+                td_style = (
+                    "border:3px solid #1d4ed8;background:#eff6ff;"
+                    "height:85px;vertical-align:top;padding:3px;"
+                )
+            elif is_today:
+                td_style = (
+                    "border:1px solid #93c5fd;background:#f0f7ff;"
+                    "height:85px;vertical-align:top;padding:3px;"
+                )
+            else:
+                td_style = (
+                    "border:1px solid #e5e7eb;background:white;"
+                    "height:85px;vertical-align:top;padding:3px;"
+                )
+
+            # 날짜 숫자 스타일
+            if is_today:
+                num_html = (
+                    f"<a href='?cal_day={ds}' style='text-decoration:none;"
+                    f"display:inline-flex;align-items:center;justify-content:center;"
+                    f"width:22px;height:22px;border-radius:50%;"
+                    f"background:#1d4ed8;color:white;"
+                    f"font-size:11px;font-weight:800;flex-shrink:0'>{day}</a>"
+                )
+            elif is_holiday or is_sun:
+                num_html = (
+                    f"<a href='?cal_day={ds}' style='text-decoration:none;"
+                    f"display:inline-flex;align-items:center;justify-content:center;"
+                    f"width:22px;height:22px;border-radius:50%;"
+                    f"color:#dc2626;"
+                    f"font-size:11px;font-weight:700;flex-shrink:0'>{day}</a>"
+                )
+            elif is_sat:
+                num_html = (
+                    f"<a href='?cal_day={ds}' style='text-decoration:none;"
+                    f"display:inline-flex;align-items:center;justify-content:center;"
+                    f"width:22px;height:22px;border-radius:50%;"
+                    f"color:#2563eb;"
+                    f"font-size:11px;font-weight:700;flex-shrink:0'>{day}</a>"
+                )
+            else:
+                num_html = (
+                    f"<a href='?cal_day={ds}' style='text-decoration:none;"
+                    f"display:inline-flex;align-items:center;justify-content:center;"
+                    f"width:22px;height:22px;border-radius:50%;"
+                    f"color:#374151;"
+                    f"font-size:11px;font-weight:700;flex-shrink:0'>{day}</a>"
+                )
+
+            # 이벤트 바
+            evs     = by_date.get(ds, [])
+            ev_html = ""
+
+            if is_holiday:
+                ev_html += (
+                    f"<div style='font-size:8px;color:#dc2626;font-weight:700;"
+                    f"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                    f"margin:1px 0;line-height:1.3'>{KR_HOLIDAYS[ds][:7]}</div>"
+                )
+
+            mkt_evs = [e for e in evs if e["type"] == "marketing"]
+            if mkt_evs:
+                ev_html += (
+                    f"<div style='font-size:8px;color:#e74c3c;"
+                    f"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                    f"margin:1px 0;line-height:1.3'>▸{mkt_evs[0]['title'][:7]}</div>"
+                )
+
+            app_evs = [e for e in evs if e["type"] not in ("holiday", "marketing")]
+            for ev in app_evs[:3]:
+                t = ev["title"][:10] + ("…" if len(ev["title"]) > 10 else "")
+                ev_html += (
+                    f"<div style='font-size:8.5px;background:{ev['color']};color:white;"
+                    f"font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                    f"margin:1px 0;padding:1px 4px;border-radius:2px;line-height:1.4'>{t}</div>"
+                )
+            if len(app_evs) > 3:
+                ev_html += (
+                    f"<div style='font-size:7.5px;color:#9ca3af;margin:1px 0'>"
+                    f"+{len(app_evs)-3}개 더보기</div>"
+                )
+
+            cells_html += (
+                f"<td style='{td_style}'>"
+                f"<div style='display:flex;justify-content:flex-end;margin-bottom:2px'>"
+                f"{num_html}</div>"
+                f"{ev_html}"
+                f"</td>"
+            )
+
+        rows_html += f"<tr>{cells_html}</tr>"
+
+    return (
+        "<table style='width:100%;border-collapse:collapse;"
+        "font-family:Noto Sans KR,sans-serif;table-layout:fixed'>"
+        f"<thead><tr>{hdr_cells}</tr></thead>"
+        f"<tbody>{rows_html}</tbody>"
+        "</table>"
+    )
+
+
 def render():
-    # ── 캘린더 전용 CSS ───────────────────────────────────────
+    # ── 우측 패널 카드 버튼 CSS ───────────────────────────────
     st.markdown("""
     <style>
-    /* 캘린더 주간 행 컬럼 → 셀처럼 */
-    [data-testid="stMarkdownContainer"]:has(.cal-week-marker)
-      + [data-testid="stHorizontalBlock"]
-      [data-testid="stColumn"] {
-        border: 1px solid #e5e7eb !important;
-        min-height: 88px !important;
-        background: white !important;
-        padding: 2px 2px !important;
-    }
-    /* 날짜 버튼 - 작은 원형 뱃지 */
-    [data-testid="stMarkdownContainer"]:has(.cal-week-marker)
-      + [data-testid="stHorizontalBlock"]
-      [data-testid="stColumn"]
-      button {
-        min-height: 22px !important;
-        height: 22px !important;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        padding: 0 !important;
-        line-height: 22px !important;
-        white-space: nowrap !important;
-        border-radius: 50% !important;
-        width: 22px !important;
-        max-width: 22px !important;
-        margin: 1px auto !important;
-        border: none !important;
-        box-shadow: none !important;
-        display: block !important;
-    }
-    /* primary(선택) 날짜: 파란 원 */
-    [data-testid="stMarkdownContainer"]:has(.cal-week-marker)
-      + [data-testid="stHorizontalBlock"]
-      [data-testid="stColumn"]
-      button[data-testid="baseButton-primary"] {
-        background: #1d4ed8 !important;
-        color: white !important;
-    }
-    /* secondary(비선택) 날짜 */
-    [data-testid="stMarkdownContainer"]:has(.cal-week-marker)
-      + [data-testid="stHorizontalBlock"]
-      [data-testid="stColumn"]
-      button[data-testid="baseButton-secondary"] {
-        background: transparent !important;
-        color: #374151 !important;
-    }
-    [data-testid="stMarkdownContainer"]:has(.cal-week-marker)
-      + [data-testid="stHorizontalBlock"]
-      [data-testid="stColumn"]
-      button[data-testid="baseButton-secondary"]:hover {
-        background: #f3f4f6 !important;
-    }
-    /* 이달의 주요업무 카드 버튼 */
-    [data-testid="stMarkdownContainer"]:has(.cal-task-card-marker)
-      + [data-testid="stButton"]
-      > button {
+    /* 이달의 주요업무 카드 버튼 공통 스타일 */
+    [data-testid="stMarkdownContainer"]:has(.ctask-marker)
+      + [data-testid="stButton"] > button {
         text-align: left !important;
         white-space: pre-wrap !important;
         height: auto !important;
-        min-height: 48px !important;
-        padding: 7px 10px !important;
+        min-height: 50px !important;
+        padding: 8px 11px !important;
         background: white !important;
-        border: 1px solid #e5e7eb !important;
-        border-radius: 7px !important;
+        border: 1.5px solid #e5e7eb !important;
+        border-radius: 8px !important;
         line-height: 1.6 !important;
         font-size: 11.5px !important;
         font-weight: 500 !important;
-        word-break: break-all !important;
+        color: #374151 !important;
+        word-break: break-word !important;
     }
-    [data-testid="stMarkdownContainer"]:has(.cal-task-card-marker)
-      + [data-testid="stButton"]
-      > button:hover {
-        background: #eff6ff !important;
+    [data-testid="stMarkdownContainer"]:has(.ctask-marker)
+      + [data-testid="stButton"] > button:hover {
+        background: #f8fafc !important;
         border-color: #93c5fd !important;
+        color: #1d4ed8 !important;
+    }
+    /* 선택 날짜 업무: 볼드 테두리 */
+    [data-testid="stMarkdownContainer"]:has(.ctask-marker-sel)
+      + [data-testid="stButton"] > button {
+        border: 2.5px solid #1d4ed8 !important;
+        background: #eff6ff !important;
         color: #1d4ed8 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
+    # ── 헤더 ─────────────────────────────────────────────────
     col_hdr, col_btn = st.columns([3, 1])
     with col_hdr:
         st.markdown("### 📅 캘린더")
@@ -216,6 +307,18 @@ def render():
 
     today         = date.today()
     today_str_val = today.isoformat()
+
+    # 날짜 링크 클릭 시 query param으로 선택 날짜 수신
+    q_day = st.query_params.get("cal_day", None)
+    if q_day:
+        try:
+            q_d = date.fromisoformat(q_day)
+            st.session_state.cal_selected = q_day
+            st.session_state.cal_year     = q_d.year
+            st.session_state.cal_month    = q_d.month
+            st.query_params.clear()
+        except ValueError:
+            st.query_params.clear()
 
     if "cal_year"     not in st.session_state: st.session_state.cal_year     = today.year
     if "cal_month"    not in st.session_state: st.session_state.cal_month    = today.month
@@ -239,7 +342,10 @@ def render():
         col = TYPE_COLORS.get(ev.get("type", "etc"), "#7c3aed")
         if ev.get("source") == "task":
             col = TYPE_COLORS["task"]
-        add_ev(ev["date"], {"title": ev["title"], "type": ev.get("type", "etc"), "color": col, "full": ev})
+        add_ev(ev["date"], {
+            "title": ev["title"], "type": ev.get("type", "etc"),
+            "color": col, "full": ev,
+        })
 
     # ── 2컬럼 레이아웃 ────────────────────────────────────────
     cal_col, side_col = st.columns([2, 1], gap="medium")
@@ -281,88 +387,16 @@ def render():
                     st.session_state.cal_month = picked.month
                     st.rerun()
 
-        # 요일 헤더
-        cal_matrix = calendar.monthcalendar(yr, mo)
-        day_names  = ["일", "월", "화", "수", "목", "금", "토"]
-        hdr_cols = st.columns(7)
-        for i, hc in enumerate(hdr_cols):
-            color = "#dc2626" if i == 0 else "#2563eb" if i == 6 else "#374151"
-            hc.markdown(
-                f"<div style='text-align:center;font-size:11px;font-weight:700;"
-                f"color:{color};padding:5px 0;background:#f9fafb;"
-                f"border:1px solid #e5e7eb'>{day_names[i]}</div>",
-                unsafe_allow_html=True,
-            )
+        # HTML 캘린더 테이블 렌더링
+        month_html = _build_month_html(yr, mo, by_date, sel_ds, today_str_val)
+        st.markdown(month_html, unsafe_allow_html=True)
 
-        # ── 날짜 그리드 ──────────────────────────────────────
-        for week in cal_matrix:
-            # 마커: CSS :has() 선택자로 이 주간 행의 컬럼들을 셀처럼 스타일링
-            st.markdown('<div class="cal-week-marker"></div>', unsafe_allow_html=True)
-            week_cols = st.columns(7)
-
-            for dow, day in enumerate(week):
-                with week_cols[dow]:
-                    if day == 0:
-                        st.markdown("<div style='min-height:20px'></div>", unsafe_allow_html=True)
-                        continue
-
-                    ds          = f"{yr}-{mo:02d}-{day:02d}"
-                    is_today    = ds == today_str_val
-                    is_selected = ds == sel_ds
-                    is_holiday  = ds in KR_HOLIDAYS
-                    is_sun      = dow == 0
-                    is_sat      = dow == 6
-
-                    # 날짜 버튼 (오늘 또는 선택된 날짜 = primary 파란 원)
-                    btn_type = "primary" if (is_selected or is_today) else "secondary"
-                    if st.button(
-                        str(day), key=f"cal_day_{ds}",
-                        use_container_width=True, type=btn_type,
-                    ):
-                        st.session_state.cal_selected = ds
-                        st.session_state.cal_year  = int(ds[:4])
-                        st.session_state.cal_month = int(ds[5:7])
-                        st.rerun()
-
-                    # 이벤트 칩 (Google Calendar 스타일 — 솔리드 컬러 바)
-                    evs = by_date.get(ds, [])
-                    chips = ""
-
-                    if is_holiday:
-                        chips += (
-                            f"<div style='font-size:8px;color:#dc2626;font-weight:700;"
-                            f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0'>"
-                            f"{KR_HOLIDAYS[ds][:7]}</div>"
-                        )
-                    elif is_sun:
-                        chips += "<div style='font-size:8px;color:#dc2626;font-weight:600'>일</div>"
-                    elif is_sat:
-                        chips += "<div style='font-size:8px;color:#2563eb;font-weight:600'>토</div>"
-
-                    # 일반 이벤트: 솔리드 컬러 바
-                    app_evs = [e for e in evs if e["type"] not in ("holiday", "marketing")]
-                    mkt_evs = [e for e in evs if e["type"] == "marketing"]
-
-                    for ev in mkt_evs[:1]:
-                        chips += (
-                            f"<div style='font-size:8px;color:#e74c3c;font-weight:600;"
-                            f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0'>"
-                            f"▸ {ev['title'][:7]}</div>"
-                        )
-
-                    for ev in app_evs[:3]:
-                        chips += (
-                            f"<div style='font-size:8.5px;background:{ev['color']};color:white;"
-                            f"font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-                            f"margin:1px 0;padding:1px 4px;border-radius:2px;line-height:1.4'>"
-                            f"{ev['title'][:10]}{'…' if len(ev['title'])>10 else ''}</div>"
-                        )
-                    overflow = len(app_evs) - 3
-                    if overflow > 0:
-                        chips += f"<div style='font-size:7.5px;color:#9ca3af;margin-top:1px'>+{overflow}개 더보기</div>"
-
-                    if chips:
-                        st.markdown(chips, unsafe_allow_html=True)
+        # 오늘로 이동 버튼
+        if st.button("오늘", key="cal_go_today", use_container_width=True):
+            st.session_state.cal_selected = today_str_val
+            st.session_state.cal_year     = today.year
+            st.session_state.cal_month    = today.month
+            st.rerun()
 
     # ── 우측 사이드 패널 ──────────────────────────────────────
     with side_col:
@@ -379,35 +413,38 @@ def render():
             unsafe_allow_html=True,
         )
 
+        # 선택된 날짜 이벤트 목록
         sel_evs = by_date.get(sel_ds, [])
         if sel_evs:
-            rows_html = ""
+            sel_html = ""
             for ev in sel_evs:
                 c = ev["color"]
-                rows_html += (
+                sel_html += (
                     f"<div style='font-size:11.5px;padding:5px 9px;border-radius:6px;"
-                    f"background:{c}11;border-left:3px solid {c};margin:3px 0'>"
+                    f"background:{c}18;border-left:3px solid {c};margin:3px 0'>"
                     f"<span style='font-weight:600;color:{c}'>{ev['title']}</span></div>"
                 )
-            st.markdown(rows_html, unsafe_allow_html=True)
+            st.markdown(sel_html, unsafe_allow_html=True)
         else:
             st.caption("이 날에 등록된 일정이 없습니다")
 
-        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
         # ── 이 달의 주요 업무 ──────────────────────────────────
         st.markdown(
-            "<div style='font-size:13px;font-weight:700;color:#374151;margin-bottom:8px'>"
+            "<div style='font-size:13px;font-weight:700;color:#374151;margin-bottom:6px'>"
             "📋 이 달의 주요 업무</div>",
             unsafe_allow_html=True,
         )
 
-        task_evs = [
-            e for e in st.session_state.get("events", [])
-            if e.get("source") == "task"
-            and e.get("date", "").startswith(f"{yr}-{mo:02d}")
-        ]
-        task_evs.sort(key=lambda e: e.get("date", ""))
+        task_evs = sorted(
+            [
+                e for e in st.session_state.get("events", [])
+                if e.get("source") == "task"
+                and e.get("date", "").startswith(f"{yr}-{mo:02d}")
+            ],
+            key=lambda e: e.get("date", ""),
+        )
 
         in3       = today + timedelta(days=3)
         cfg_units = st.session_state.cfg.get("units", {})
@@ -415,42 +452,33 @@ def render():
         upcoming = [e for e in task_evs if date.fromisoformat(e["date"]) >= today]
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
-        def _task_rows(ev_list, is_past=False):
+        def _task_rows(ev_list, is_past: bool = False):
             for ev in ev_list:
                 task_id = ev.get("taskId")
+                if not task_id:
+                    continue
                 due_d   = date.fromisoformat(ev["date"])
                 is_ov   = due_d < today
                 is_soon = today <= due_d <= in3
                 ci      = cfg_units.get(ev.get("cell", ""), {})
                 cn      = ci.get("name", "")
-                cc      = "#d1d5db" if is_past else ci.get("color", "#9ca3af")
 
-                if task_id:
-                    badge = "⬜" if is_past else ("🔴" if is_ov else "🟡" if is_soon else "🔵")
-                    title = ev["title"].replace("[Task] ", "")
-                    date_color = "#9ca3af" if is_past else ("#dc2626" if is_ov else "#d97706" if is_soon else "#3b82f6")
-                    cell_part  = f"  [{cn}]" if cn else ""
-                    label = f"{badge} {title}\n{ev['date']}{cell_part}"
+                badge  = "⬜" if is_past else ("🔴" if is_ov else "🟡" if is_soon else "🔵")
+                title  = ev["title"].replace("[Task] ", "")
+                label  = f"{badge} {title}\n📅 {ev['date']}{' · ' + cn if cn else ''}"
 
-                    # 마커 → CSS :has()로 버튼을 카드처럼 스타일링
-                    st.markdown('<div class="cal-task-card-marker"></div>', unsafe_allow_html=True)
-                    if st.button(
-                        label,
-                        key=f"cal_tdet_{ev.get('id','')}{is_past}",
-                        use_container_width=True,
-                    ):
-                        st.session_state.detail_task_id = task_id
-                        st.rerun()
-                else:
-                    # 비-Task 이벤트는 HTML 카드만 표시
-                    c = TYPE_COLORS.get(ev.get("type", "etc"), "#7c3aed")
-                    st.markdown(
-                        f"<div style='font-size:11.5px;padding:5px 9px;border-radius:6px;"
-                        f"background:{c}11;border-left:3px solid {c};margin:3px 0;"
-                        f"opacity:{'0.6' if is_past else '1'}'>"
-                        f"<span style='font-weight:600;color:{c}'>{ev['title']}</span></div>",
-                        unsafe_allow_html=True,
-                    )
+                # 선택 날짜 여부 → 마커 CSS 클래스 결정
+                is_sel_task = ev["date"] == sel_ds
+                marker_cls  = "ctask-marker-sel" if is_sel_task else "ctask-marker"
+                st.markdown(f'<div class="{marker_cls}"></div>', unsafe_allow_html=True)
+
+                if st.button(
+                    label,
+                    key=f"cal_tdet_{ev.get('id','')}{is_past}",
+                    use_container_width=True,
+                ):
+                    st.session_state.detail_task_id = task_id
+                    st.rerun()
 
         if upcoming:
             _task_rows(upcoming, False)
@@ -467,7 +495,7 @@ def render():
         if not task_evs:
             st.info("이달 등록된 Task 마감이 없습니다", icon="📭")
 
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
         # ── Google Calendar 내보내기 ──────────────────────────
         st.markdown(
@@ -475,8 +503,6 @@ def render():
             "📤 Google Calendar 공유</div>",
             unsafe_allow_html=True,
         )
-        st.caption("이 달 일정을 .ics 파일로 내보내거나, 개별 일정을 Google Calendar에 바로 추가할 수 있습니다.")
-
         export_evs = [
             e for e in st.session_state.get("events", [])
             if e.get("date", "").startswith(f"{yr}-{mo:02d}")
@@ -493,7 +519,6 @@ def render():
             use_container_width=True,
             key="ics_download",
         )
-        st.caption("다운로드 후 Google Calendar에서 **설정 → 가져오기**하거나, 파일을 열면 자동으로 추가됩니다.")
 
         day_manual_evs = [
             e for e in st.session_state.get("events", [])
@@ -502,7 +527,7 @@ def render():
         if day_manual_evs:
             st.markdown(
                 f"<div style='font-size:11.5px;font-weight:600;color:#374151;"
-                f"margin:10px 0 4px'>📅 {sel_date.month}/{sel_date.day} 일정 바로 추가</div>",
+                f"margin:10px 0 4px'>📅 {sel_date.month}/{sel_date.day} Google Calendar 추가</div>",
                 unsafe_allow_html=True,
             )
             for ev in day_manual_evs:
