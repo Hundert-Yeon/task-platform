@@ -26,6 +26,31 @@ def login_screen():
     """, unsafe_allow_html=True)
 
     col_l, col_c, col_r = st.columns([1, 2, 1])
+
+    # ── 좌상단: 점장/부문장 진입 링크 ───────────────────────────
+    with col_l:
+        st.markdown("<div style='padding-top:24px'></div>", unsafe_allow_html=True)
+        if st.session_state.get("show_sm_login"):
+            st.markdown("""
+            <div style="padding:6px 10px;background:rgba(255,255,255,0.07);
+                        border:1px solid rgba(255,255,255,0.15);border-radius:7px;
+                        display:inline-block">
+              <span style="font-size:11px;color:rgba(255,255,255,0.55);font-weight:600;
+                           letter-spacing:0.5px">점장 / 부문장</span>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <a href="?sm_login=1" style="text-decoration:none">
+              <div style="padding:6px 10px;background:rgba(255,255,255,0.05);
+                          border:1px solid rgba(255,255,255,0.12);border-radius:7px;
+                          display:inline-block;cursor:pointer">
+                <span style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:500;
+                             letter-spacing:0.5px">점장 / 부문장</span>
+              </div>
+            </a>
+            """, unsafe_allow_html=True)
+
     with col_c:
         # ── 브랜딩 ──────────────────────────────────────────────
         st.markdown(f"""
@@ -47,22 +72,10 @@ def login_screen():
         </div>
         """, unsafe_allow_html=True)
 
-        # ── 점장/부문장 로그인 (하단, 눈에 안 띄게) ────────────
-        st.markdown("<div style='margin-top:28px'></div>", unsafe_allow_html=True)
-
+        # ── 점장/부문장 로그인 폼 (클릭 후 표시) ────────────────
         if st.session_state.get("show_sm_login"):
+            st.markdown("<div style='margin-top:20px'></div>", unsafe_allow_html=True)
             _render_store_manager_section(branch_cfg)
-        else:
-            # 클릭해야만 보이는 매우 작은 링크
-            st.markdown("""
-            <div style="text-align:left">
-              <a href="?sm_login=1"
-                 style="font-size:10px;color:rgba(255,255,255,0.18);
-                        text-decoration:none;letter-spacing:0.5px">
-                관리자
-              </a>
-            </div>
-            """, unsafe_allow_html=True)
 
 
 def _render_member_login(branch_cfg: dict):
