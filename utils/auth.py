@@ -10,26 +10,15 @@ def login_screen():
     branch_cfg = st.session_state.get("branch_cfg", {})
     branch     = branch_cfg.get("branch_name", "인천점")
 
-    st.markdown("""
-    <style>
-    /* 점장 토글 버튼 - 링크처럼 보이게 */
-    div[data-testid="stButton"].sm-toggle > button {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: #9ca3af !important;
-        font-size: 11px !important;
-        font-weight: 300 !important;
-        padding: 0 4px !important;
-        text-decoration: underline;
-        white-space: nowrap !important;
-    }
-    div[data-testid="stButton"].sm-toggle > button:hover {
-        color: #6b7280 !important;
-        background: transparent !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # query param으로 점장 로그인 토글
+    if st.query_params.get("sm_login"):
+        st.session_state.show_sm_login = True
+        st.query_params.clear()
+        st.rerun()
+    if st.query_params.get("sm_back"):
+        st.session_state.show_sm_login = False
+        st.query_params.clear()
+        st.rerun()
 
     _, col_c, _ = st.columns([1, 2, 1])
 
@@ -51,22 +40,18 @@ def login_screen():
             # ── 일반 로그인 ─────────────────────────────────────
             _render_member_login(branch_cfg)
 
-            # 안내문
+            # 안내문 + 점장 텍스트 링크
             st.markdown("""
-            <div style="text-align:center;margin-top:14px;font-size:11px;color:#9ca3af;line-height:1.7">
-                본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
+            <div style="text-align:center;margin-top:14px;line-height:2">
+                <div style="font-size:11px;color:#9ca3af;">
+                    본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
+                </div>
+                <a href="?sm_login=1" style="font-size:10px;color:#c4c9d1;
+                   font-weight:300;text-decoration:none;letter-spacing:0.2px">
+                    점장/부문장 로그인
+                </a>
             </div>
             """, unsafe_allow_html=True)
-
-            # 점장 토글 버튼
-            _, btn_col, _ = st.columns([1, 1, 1])
-            with btn_col:
-                st.markdown('<div class="sm-toggle">', unsafe_allow_html=True)
-                if st.button("점장/부문장 로그인", use_container_width=True,
-                             key="sm_login_toggle"):
-                    st.session_state.show_sm_login = True
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
 
         else:
             # ── 점장/부문장 로그인 ──────────────────────────────
@@ -163,10 +148,8 @@ def _render_member_login(branch_cfg: dict):
 def _render_store_manager_login(branch_cfg: dict):
     """점장/부문장 로그인 화면"""
     st.markdown("""
-    <div style="text-align:center;margin-bottom:16px">
-        <div style="font-size:13px;font-weight:600;color:#374151;letter-spacing:0.5px">
-            점장 / 부문장 로그인
-        </div>
+    <div style="font-size:11px;color:#9ca3af;font-weight:300;margin-bottom:12px">
+        점장 / 부문장
     </div>
     """, unsafe_allow_html=True)
 
@@ -195,7 +178,9 @@ def _render_store_manager_login(branch_cfg: dict):
         }
         st.rerun()
 
-    st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
-    if st.button("← 일반 로그인으로 돌아가기", use_container_width=True, key="sm_back_btn"):
-        st.session_state.show_sm_login = False
-        st.rerun()
+    st.markdown("""
+    <div style="margin-top:10px">
+        <a href="?sm_back=1" style="font-size:10px;color:#c4c9d1;
+           font-weight:300;text-decoration:none">← 일반 로그인</a>
+    </div>
+    """, unsafe_allow_html=True)
