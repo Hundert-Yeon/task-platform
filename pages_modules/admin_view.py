@@ -2,9 +2,8 @@
 pages_modules/admin_view.py  — 어드민 설정 (팀장 전용)
 """
 import streamlit as st
-import json
-import os
 import pathlib
+from utils.state import TYPE_OPTIONS, DEFAULT_MENU_VISIBILITY, _build_team_cfg, _load_team
 
 
 def render():
@@ -13,7 +12,7 @@ def render():
         return
 
     st.markdown("### ⚙️ 어드민 설정")
-    st.caption("팀/유닛/셀 관리 · 팀장 비밀번호 변경 · 시스템 설정")
+    st.caption("팀/유닛/셀/파트 관리 · 팀장 비밀번호 변경 · 시스템 설정")
 
     cfg = st.session_state.cfg
 
@@ -24,9 +23,9 @@ def render():
     units  = cfg.get("units", {})
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("전체 Task",    len(tasks))
-    c2.metric("팀/유닛/셀 수", len(units))
-    c3.metric("메모·파일",    len(memos) + len(files))
+    c1.metric("전체 Task",          len(tasks))
+    c2.metric("유닛/셀/파트 수",     len(units))
+    c3.metric("메모·파일",          len(memos) + len(files))
 
     st.divider()
 
@@ -59,12 +58,10 @@ def render():
 
     col_left, col_right = st.columns(2)
 
-    # ── 좌: 유닛/셀 관리 ─────────────────────────────────────
+    # ── 좌: 유닛/셀/파트 관리 ────────────────────────────────
     with col_left:
-        st.markdown("#### 🏢 팀 / 유닛 / 셀 관리")
-        st.caption("이름·색상·이모지·유형 수정 가능")
-
-        TYPE_OPTIONS = ["팀", "유닛", "셀"]
+        st.markdown("#### 🏢 유닛 / 셀 / 파트 관리")
+        st.caption(f"현재 팀: {cfg.get('team_name','')}")
 
         for uid, u in list(units.items()):
             with st.expander(f"{u['emoji']} {u['name']} ({u['type']})", expanded=False):
@@ -101,21 +98,20 @@ def render():
                                 st.session_state[confirm_key] = True
                                 st.warning(f"한번 더 누르면 '{u['name']}'과 관련 Task가 삭제됩니다!")
                         else:
-                            st.error("최소 1개의 유닛/셀이 필요합니다")
+                            st.error("최소 1개의 유닛/셀/파트가 필요합니다")
 
-        # 새 팀/유닛/셀 추가
-        st.markdown("**+ 새 팀/유닛/셀 추가**")
+        st.markdown("**+ 새 유닛/셀/파트 추가**")
         with st.form("add_unit_form"):
             a_col1, a_col2 = st.columns([1, 3])
             new_emoji = a_col1.text_input("이모지", value="📁", max_chars=2)
             new_name  = a_col2.text_input("이름")
-            b_col1, b_col2, b_col3 = st.columns(3)
-            new_type  = b_col1.selectbox("유형", ["팀", "유닛", "셀"])
+            b_col1, b_col2 = st.columns(2)
+            new_type  = b_col1.selectbox("유형", TYPE_OPTIONS)
             new_color = b_col2.color_picker("색상", value="#3b82f6")
 
             if st.form_submit_button("추가", type="primary", use_container_width=True):
                 if new_name.strip():
-                    base_id = new_name.lower().replace(" ","_")[:12] or "unit"
+                    base_id = new_name.lower().replace(" ", "_")[:12] or "unit"
                     uid = base_id
                     n = 1
                     while uid in cfg["units"] or uid == "manager":
@@ -130,16 +126,19 @@ def render():
                     st.success(f"'{new_name}' 추가됐습니다!")
                     st.rerun()
 
-    # ── 우: 비밀번호 + 점·팀 이름 + 시스템 ───────────────────
+    # ── 우: 설정 패널 ─────────────────────────────────────────
     with col_right:
         # 점·팀 이름 설정
         st.markdown("#### 🏬 점·팀 이름 설정")
+        branch_cfg = st.session_state.get("branch_cfg", {})
         with st.form("names_form"):
-            branch = st.text_input("점 이름", value=cfg.get("branch_name","인천점"))
-            team   = st.text_input("팀 이름", value=cfg.get("team_name","영업기획팀"))
+            branch = st.text_input("점 이름", value=branch_cfg.get("branch_name", "인천점"))
+            team   = st.text_input("팀 이름", value=cfg.get("team_name", "영업기획팀"))
             if st.form_submit_button("저장", type="primary", use_container_width=True):
-                cfg["branch_name"] = branch.strip() or "인천점"
-                cfg["team_name"]   = team.strip()   or "영업기획팀"
+                new_branch = branch.strip() or "인천점"
+                st.session_state.branch_cfg["branch_name"] = new_branch
+                cfg["branch_name"] = new_branch
+                cfg["team_name"]   = team.strip() or "영업기획팀"
                 st.session_state.cfg = cfg
                 st.success("저장됐습니다!")
 
@@ -208,6 +207,84 @@ def render():
                 else:
                     st.session_state.confirm_full_reset = True
                     st.warning("한번 더 누르면 Task·메모·파일·일정이 모두 삭제됩니다!")
+
+    # ── 팀 관리 (전체 너비) ──────────────────────────────────────
+    st.divider()
+    _render_team_management()
+
+
+def _render_team_management():
+    """팀 생성 / 삭제 관리"""
+    st.markdown("#### 🏗️ 팀 관리")
+    st.caption("팀을 추가하거나 삭제합니다. 삭제 시 해당 팀의 모든 데이터가 제거됩니다.")
+
+    teams_data      = st.session_state.get("teams_data", {})
+    current_team_id = st.session_state.get("current_team_id", "")
+    branch_cfg      = st.session_state.get("branch_cfg", {})
+    branch_name     = branch_cfg.get("branch_name", "인천점")
+
+    t_col1, t_col2 = st.columns(2)
+
+    with t_col1:
+        st.markdown("**등록된 팀 목록**")
+        for tid, td in list(teams_data.items()):
+            tcfg   = td["cfg"]
+            tname  = tcfg.get("team_name", tid)
+            is_cur = tid == current_team_id
+            badge  = " ← 현재" if is_cur else ""
+
+            with st.expander(f"🏢 {tname}{badge}", expanded=False):
+                n_tasks = len(td.get("tasks", []))
+                n_units = len(tcfg.get("units", {}))
+                st.markdown(f"Task: **{n_tasks}건** · 유닛/셀/파트: **{n_units}개**")
+
+                if is_cur:
+                    st.info("현재 열람 중인 팀은 삭제할 수 없습니다.")
+                elif len(teams_data) <= 1:
+                    st.info("최소 1개의 팀이 필요합니다.")
+                else:
+                    confirm_key = f"confirm_del_team_{tid}"
+                    if st.button(f"🗑 {tname} 팀 삭제", key=f"del_team_{tid}",
+                                 use_container_width=True):
+                        if st.session_state.get(confirm_key):
+                            del st.session_state.teams_data[tid]
+                            st.session_state.pop(confirm_key, None)
+                            st.success(f"'{tname}' 팀이 삭제됐습니다.")
+                            st.rerun()
+                        else:
+                            st.session_state[confirm_key] = True
+                            st.warning(f"한번 더 누르면 '{tname}'과 모든 데이터가 삭제됩니다!")
+
+    with t_col2:
+        st.markdown("**새 팀 추가**")
+        with st.form("add_team_form"):
+            new_team_name = st.text_input("팀 이름", placeholder="예: 운영팀")
+            new_mgr_pw    = st.text_input("팀장 비밀번호", value="0000",
+                                          help="이 팀 팀장의 로그인 비밀번호")
+            if st.form_submit_button("팀 추가", type="primary", use_container_width=True):
+                if not new_team_name.strip():
+                    st.error("팀 이름을 입력해주세요")
+                else:
+                    base_id = new_team_name.lower().replace(" ", "_")[:16] or "team"
+                    tid = base_id
+                    n = 1
+                    while tid in teams_data:
+                        tid = f"{base_id}{n}"; n += 1
+                    st.session_state.teams_data[tid] = {
+                        "cfg": {
+                            "manager_pw":      new_mgr_pw or "0000",
+                            "team_name":       new_team_name.strip(),
+                            "branch_name":     branch_name,
+                            "units":           {},
+                            "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
+                        },
+                        "tasks":  [],
+                        "events": [],
+                        "memos":  [],
+                        "files":  [],
+                    }
+                    st.success(f"'{new_team_name}' 팀이 추가됐습니다!")
+                    st.rerun()
 
 
 def _render_api_key_section():

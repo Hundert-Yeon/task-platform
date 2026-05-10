@@ -105,7 +105,7 @@ def _event_form_dialog():
             "id": new_id(), "title": ev_title.strip(),
             "date": ev_date.isoformat(), "type": ev_type, "note": ev_note,
             "shared": ev_shared,
-            "cell": None if user["cell"] == "manager" else user["cell"],
+            "cell": None if user["cell"] in ("manager", "store_manager") else user["cell"],
             "source": "manual",
         })
         st.success("일정이 추가됐습니다!")

@@ -63,7 +63,7 @@ def render():
                     "size":   _fmt_bytes(f.size),
                     "date":   date.today().isoformat(),
                     "folder": folder,
-                    "cell":   None if user["cell"] == "manager" else user["cell"],
+                    "cell":   None if user["cell"] in ("manager", "store_manager") else user["cell"],
                     "tags":   [folder],
                     "shared": False,
                 })
@@ -72,7 +72,7 @@ def render():
 
         # 파일 목록 표시
         files = st.session_state.get("files", [])
-        is_manager = user["cell"] == "manager"
+        is_manager = user["cell"] in ("manager", "store_manager")
         visible = [
             f for f in files
             if (is_manager or f.get("cell") == user["cell"] or f.get("shared"))

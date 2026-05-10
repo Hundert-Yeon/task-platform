@@ -1,6 +1,6 @@
 import streamlit as st
 from pages_modules import dashboard, taskboard, calendar_view, files_view, memo_view, admin_view, shared_feed
-from utils.state import init_state
+from utils.state import init_state, switch_team, get_all_teams
 from utils.auth import login_screen
 
 # ── 페이지 설정 ──────────────────────────────────────────────
@@ -169,14 +169,68 @@ if not st.session_state.get("logged_in"):
     login_screen()
     st.stop()
 
+user = st.session_state.user
+
+
+def _render_sm_team_selection():
+    branch_cfg = st.session_state.branch_cfg
+    branch     = branch_cfg.get("branch_name", "인천점")
+    all_teams  = get_all_teams()
+
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,#0c1a35,#1a3461,#0f172a);
+                position:fixed;inset:0;z-index:0"></div>
+    <div style="position:relative;z-index:1;text-align:center;padding:60px 0 30px">
+      <div style="font-size:26px;font-weight:900;letter-spacing:4px;color:#c9b99a">LOTTE</div>
+      <div style="font-size:12px;color:#8a7d6e;letter-spacing:3px;margin-bottom:4px">DEPARTMENT STORE</div>
+      <div style="font-size:20px;font-weight:700;color:white;letter-spacing:2px">{branch}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-top:6px">
+        {user['name']} 점장님, 열람할 팀을 선택하세요
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    teams_data = st.session_state.teams_data
+    _, *cols, _ = st.columns([1] + [2] * len(all_teams) + [1])
+
+    for i, (tid, tname) in enumerate(all_teams):
+        td      = teams_data[tid]
+        tcfg    = td["cfg"]
+        n_tasks = len(td["tasks"])
+        n_units = len(tcfg.get("units", {}))
+
+        with cols[i]:
+            st.markdown(f"""
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);
+                        border-radius:14px;padding:24px 20px;text-align:center;
+                        backdrop-filter:blur(20px)">
+              <div style="font-size:26px;margin-bottom:8px">🏢</div>
+              <div style="font-size:17px;font-weight:700;color:white;margin-bottom:6px">{tname}</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.5)">
+                유닛/셀/파트 {n_units}개 · Task {n_tasks}건
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"✓ {tname} 선택", key=f"sm_sel_{tid}",
+                         use_container_width=True, type="primary"):
+                switch_team(tid)
+                st.session_state.sm_team_confirmed = True
+                st.session_state.user["team_id"] = tid
+                st.rerun()
+
+
+# ── 점장: 팀 선택 화면 ──────────────────────────────────────
+if user.get("cell") == "store_manager" and not st.session_state.get("sm_team_confirmed"):
+    _render_sm_team_selection()
+    st.stop()
+
 # ── 사이드바 ─────────────────────────────────────────────────
 with st.sidebar:
-    cfg  = st.session_state.cfg
-    user = st.session_state.user
+    cfg        = st.session_state.cfg
+    branch_cfg = st.session_state.branch_cfg
+    branch     = branch_cfg.get("branch_name", cfg.get("branch_name", "인천점"))
+    team       = cfg.get("team_name", "영업기획팀")
 
-    # 로고: 어드민 설정의 점·팀 이름 표시
-    branch = cfg.get("branch_name", "인천점")
-    team   = cfg.get("team_name", "영업기획팀")
     st.markdown(
         f"<div class='sidebar-logo'>{branch}"
         f"<br><span style='font-size:11px;font-weight:600;letter-spacing:1px;"
@@ -184,10 +238,17 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    unit_name  = cfg["units"].get(user["cell"], {}).get("name",  user["cell"])
-    unit_color = cfg["units"].get(user["cell"], {}).get("color", "#1d4ed8")
+    # 유저 배지
+    if user["cell"] == "store_manager":
+        unit_name  = "점장"
+        unit_color = "#0f172a"
+    elif user["cell"] == "manager":
+        unit_name  = "팀장"
+        unit_color = "#1d4ed8"
+    else:
+        unit_name  = cfg["units"].get(user["cell"], {}).get("name",  user["cell"])
+        unit_color = cfg["units"].get(user["cell"], {}).get("color", "#1d4ed8")
 
-    # 유저 정보 카드
     st.markdown(f"""
     <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;
                 margin-bottom:8px;font-size:13px;border:1px solid #e5e7eb;
@@ -198,6 +259,24 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    # 점장: 팀 전환 버튼
+    if user["cell"] == "store_manager":
+        all_teams       = get_all_teams()
+        current_team_id = st.session_state.get("current_team_id", "")
+        st.caption("🔀 팀 전환")
+        t_cols = st.columns(len(all_teams))
+        for i, (tid, tname) in enumerate(all_teams):
+            is_cur = tid == current_team_id
+            with t_cols[i]:
+                if st.button(tname, key=f"sw_team_{tid}",
+                             use_container_width=True,
+                             type="primary" if is_cur else "secondary"):
+                    switch_team(tid)
+                    st.session_state.user["team_id"] = tid
+                    st.session_state.current_page = "dashboard"
+                    st.rerun()
+        st.divider()
+
     # 네비게이션
     menu_vis = cfg.get("menu_visibility", {})
     ALL_PAGES = {
@@ -207,8 +286,9 @@ with st.sidebar:
         "📁 파일 저장소": "files",
         "📝 메모장":      "memo",
     }
-    if user["cell"] == "manager":
-        # 팀장: menu_visibility 적용 + 팀장 전용 메뉴(전체공유피드·어드민)는 항상 표시
+
+    if user["cell"] in ("manager", "store_manager"):
+        # 팀장/점장: menu_visibility 적용 + 전체공유피드 항상 표시
         pages = {
             label: key
             for label, key in ALL_PAGES.items()
@@ -216,9 +296,10 @@ with st.sidebar:
         }
         if menu_vis.get("shared_feed", True):
             pages["🌐 전체 공유 피드"] = "shared_feed"
-        pages["⚙️ 어드민 설정"] = "admin"
+        # 어드민은 팀장만 (점장 제외)
+        if user["cell"] == "manager":
+            pages["⚙️ 어드민 설정"] = "admin"
     else:
-        # 일반 팀원: menu_visibility 적용
         pages = {
             label: key
             for label, key in ALL_PAGES.items()
@@ -250,7 +331,8 @@ with st.sidebar:
 
     if st.button("🚪 로그아웃", use_container_width=True):
         st.session_state.logged_in = False
-        st.session_state.user = None
+        st.session_state.user      = None
+        st.session_state.pop("sm_team_confirmed", None)
         st.rerun()
 
 # ── 페이지 라우팅 ────────────────────────────────────────────

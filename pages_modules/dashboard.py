@@ -40,7 +40,7 @@ def render():
     user  = st.session_state.user
     cfg   = st.session_state.cfg
     units = cfg.get("units", {})
-    is_manager = user["cell"] == "manager"
+    is_manager = user["cell"] in ("manager", "store_manager")
 
     # ── view_cell 결정 ──────────────────────────────────────────
     if is_manager:

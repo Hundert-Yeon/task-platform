@@ -85,7 +85,7 @@ def render():
     user  = st.session_state.user
     cfg   = st.session_state.cfg
     units = cfg.get("units", {})
-    is_manager = user["cell"] == "manager"
+    is_manager = user["cell"] in ("manager", "store_manager")
 
     if "detail_task_id" not in st.session_state:
         st.session_state.detail_task_id = None
@@ -233,7 +233,7 @@ def _task_form():
     user  = st.session_state.user
     cfg   = st.session_state.cfg
     units = cfg.get("units", {})
-    is_manager = user["cell"] == "manager"
+    is_manager = user["cell"] in ("manager", "store_manager")
 
     with st.form("task_modal_form"):
         title = st.text_input("업무명 *", value=edit_task["title"] if edit_task else "")

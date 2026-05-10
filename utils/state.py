@@ -7,27 +7,61 @@ from datetime import date, timedelta
 import uuid
 
 
-# ── 기본 유닛/셀 설정 ──────────────────────────────────────
+# ── 유닛 타입 옵션 ────────────────────────────────────────────────
+TYPE_OPTIONS = ["팀", "유닛", "셀", "파트"]
+
+# ── 기본 유닛/셀 설정 (영업기획팀) ───────────────────────────────
 DEFAULT_UNITS = {
-    "marketing": {"name": "마케팅",  "emoji": "📣",  "type": "유닛", "color": "#1d4ed8"},
-    "analysis":  {"name": "영업분석", "emoji": "📊", "type": "셀",  "color": "#059669"},
-    "online":    {"name": "온라인",  "emoji": "💻",  "type": "셀",  "color": "#7c3aed"},
-    "md":        {"name": "MD",     "emoji": "🏷️",  "type": "셀",  "color": "#b45309"},
+    "marketing": {"name": "마케팅",   "emoji": "📣",  "type": "유닛", "color": "#1d4ed8"},
+    "analysis":  {"name": "영업분석", "emoji": "📊",  "type": "셀",  "color": "#059669"},
+    "online":    {"name": "온라인",   "emoji": "💻",  "type": "셀",  "color": "#7c3aed"},
+    "md":        {"name": "MD",      "emoji": "🏷️", "type": "셀",  "color": "#b45309"},
 }
 
-DEFAULT_CFG = {
-    "manager_pw":  "0000",
-    "branch_name": "인천점",
-    "team_name":   "영업기획팀",
-    "units":       DEFAULT_UNITS,
-    "menu_visibility": {
-        "dashboard":   True,
-        "tasks":       True,
-        "calendar":    True,
-        "files":       True,
-        "memo":        True,
-        "shared_feed": True,
+# ── 기본 파트 설정 (지원팀) ──────────────────────────────────────
+DEFAULT_SUPPORT_UNITS = {
+    "hr_part":      {"name": "인사파트", "emoji": "👥", "type": "파트", "color": "#dc2626"},
+    "support_part": {"name": "지원파트", "emoji": "🛠️", "type": "파트", "color": "#7c3aed"},
+}
+
+DEFAULT_MENU_VISIBILITY = {
+    "dashboard":   True,
+    "tasks":       True,
+    "calendar":    True,
+    "files":       True,
+    "memo":        True,
+    "shared_feed": True,
+}
+
+# ── 지점 전역 설정 ────────────────────────────────────────────────
+DEFAULT_BRANCH_CFG = {
+    "branch_name":      "인천점",
+    "store_manager_pw": "0000",
+}
+
+# ── 팀 정의 ──────────────────────────────────────────────────────
+DEFAULT_TEAMS = {
+    "sales_planning": {
+        "team_name":       "영업기획팀",
+        "manager_pw":      "0000",
+        "units":           DEFAULT_UNITS,
+        "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
     },
+    "support": {
+        "team_name":       "지원팀",
+        "manager_pw":      "0000",
+        "units":           DEFAULT_SUPPORT_UNITS,
+        "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
+    },
+}
+
+# ── (하위 호환) ───────────────────────────────────────────────────
+DEFAULT_CFG = {
+    "manager_pw":      "0000",
+    "branch_name":     "인천점",
+    "team_name":       "영업기획팀",
+    "units":           DEFAULT_UNITS,
+    "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
 }
 
 KR_HOLIDAYS = {
@@ -86,6 +120,19 @@ def seed_tasks():
     ]
 
 
+def seed_tasks_support():
+    return [
+        {"id": new_id(), "title": "신규 직원 채용 공고 작성",   "cell": "hr_part",
+         "pri": "H", "assignee": "이인사", "due": today_str(3),  "status": "inprog", "desc": "", "shared": False},
+        {"id": new_id(), "title": "복리후생 제도 개선안 검토",   "cell": "hr_part",
+         "pri": "M", "assignee": "김복지", "due": today_str(7),  "status": "todo",   "desc": "", "shared": False},
+        {"id": new_id(), "title": "사무용품 재고 확인 및 발주", "cell": "support_part",
+         "pri": "M", "assignee": "박지원", "due": today_str(2),  "status": "inprog", "desc": "", "shared": False},
+        {"id": new_id(), "title": "매장 청소 업체 계약 갱신",   "cell": "support_part",
+         "pri": "H", "assignee": "최관리", "due": today_str(5),  "status": "todo",   "desc": "", "shared": True},
+    ]
+
+
 def seed_events():
     return [
         {"id": new_id(), "title": "6월 정기 영업회의",    "date": today_str(3),
@@ -94,6 +141,13 @@ def seed_events():
          "type": "promo",    "note": "전층 동시",  "shared": True,  "cell": None, "source": "manual"},
         {"id": new_id(), "title": "2F CRM 분석 보고",    "date": today_str(5),
          "type": "deadline", "note": "팀장 보고",  "shared": False, "cell": "analysis", "source": "manual"},
+    ]
+
+
+def seed_events_support():
+    return [
+        {"id": new_id(), "title": "월례 직원 회의", "date": today_str(5),
+         "type": "meeting", "note": "전 직원 참석", "shared": True, "cell": None, "source": "manual"},
     ]
 
 
@@ -108,26 +162,103 @@ def seed_memos():
     ]
 
 
+def seed_memos_support():
+    return [
+        {"id": new_id(), "title": "6월 채용 계획",
+         "content": "- 영업직 3명 신규 채용 예정\n- 면접: 6월 중순\n- 합격자 발표: 6월 말",
+         "date": today_str(0), "cell": "hr_part", "shared": False},
+    ]
+
+
+def _build_team_cfg(team_def: dict, branch_name: str) -> dict:
+    return {
+        "manager_pw":      team_def["manager_pw"],
+        "team_name":       team_def["team_name"],
+        "branch_name":     branch_name,
+        "units":           {k: dict(v) for k, v in team_def["units"].items()},
+        "menu_visibility": dict(team_def.get("menu_visibility", DEFAULT_MENU_VISIBILITY)),
+    }
+
+
+def _load_team(team_id: str):
+    """팀 데이터를 활성 세션 변수로 로드"""
+    td = st.session_state.teams_data[team_id]
+    st.session_state.cfg    = td["cfg"]
+    st.session_state.tasks  = td["tasks"]
+    st.session_state.events = td["events"]
+    st.session_state.memos  = td["memos"]
+    st.session_state.files  = td["files"]
+    st.session_state.current_team_id = team_id
+
+
+def save_current_team():
+    """활성 세션 변수를 teams_data에 저장"""
+    tid = st.session_state.get("current_team_id")
+    if not tid or "teams_data" not in st.session_state:
+        return
+    st.session_state.teams_data[tid] = {
+        "cfg":    st.session_state.cfg,
+        "tasks":  st.session_state.tasks,
+        "events": st.session_state.events,
+        "memos":  st.session_state.memos,
+        "files":  st.session_state.files,
+    }
+
+
+def switch_team(team_id: str):
+    """현재 팀 저장 후 새 팀으로 전환"""
+    save_current_team()
+    _load_team(team_id)
+
+
+def get_all_teams() -> list[tuple[str, str]]:
+    """(team_id, team_name) 목록 반환"""
+    teams_data = st.session_state.get("teams_data", {})
+    return [(tid, td["cfg"]["team_name"]) for tid, td in teams_data.items()]
+
+
 def init_state():
     """Streamlit session_state 전체 초기화"""
     if "initialized" not in st.session_state:
-        st.session_state.initialized   = True
-        st.session_state.logged_in     = False
-        st.session_state.user          = None
-        st.session_state.cfg           = dict(DEFAULT_CFG)
-        st.session_state.tasks         = seed_tasks()
-        st.session_state.events        = seed_events()
-        st.session_state.memos         = seed_memos()
-        st.session_state.files         = []
-        st.session_state.current_page  = "dashboard"
+        st.session_state.initialized  = True
+        st.session_state.logged_in    = False
+        st.session_state.user         = None
+        st.session_state.current_page = "dashboard"
+        st.session_state.branch_cfg   = dict(DEFAULT_BRANCH_CFG)
+
+        branch_name = DEFAULT_BRANCH_CFG["branch_name"]
+        st.session_state.teams_data = {
+            "sales_planning": {
+                "cfg":    _build_team_cfg(DEFAULT_TEAMS["sales_planning"], branch_name),
+                "tasks":  seed_tasks(),
+                "events": seed_events(),
+                "memos":  seed_memos(),
+                "files":  [],
+            },
+            "support": {
+                "cfg":    _build_team_cfg(DEFAULT_TEAMS["support"], branch_name),
+                "tasks":  seed_tasks_support(),
+                "events": seed_events_support(),
+                "memos":  seed_memos_support(),
+                "files":  [],
+            },
+        }
+
+        # 기본 활성 팀: 영업기획팀
+        _load_team("sales_planning")
 
 
 # ── 접근 제어 ───────────────────────────────────────────────
+def _is_admin_user() -> bool:
+    user = st.session_state.get("user")
+    return user and user.get("cell") in ("manager", "store_manager")
+
+
 def can_see_task(task: dict) -> bool:
     user = st.session_state.user
     if not user:
         return False
-    if user["cell"] == "manager":
+    if user["cell"] in ("manager", "store_manager"):
         return True
     return task["cell"] == user["cell"] or task.get("shared", False)
 
@@ -136,7 +267,7 @@ def can_see_event(event: dict) -> bool:
     user = st.session_state.user
     if not user:
         return False
-    if user["cell"] == "manager":
+    if user["cell"] in ("manager", "store_manager"):
         return True
     return event.get("shared", False) or event.get("cell") == user["cell"] or not event.get("cell")
 
@@ -145,7 +276,7 @@ def can_see_memo(memo: dict) -> bool:
     user = st.session_state.user
     if not user:
         return False
-    if user["cell"] == "manager":
+    if user["cell"] in ("manager", "store_manager"):
         return True
     return memo.get("cell") == user["cell"] or memo.get("shared", False)
 

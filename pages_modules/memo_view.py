@@ -24,7 +24,7 @@ def render():
                 "title":   "",
                 "content": "",
                 "date":    date.today().isoformat(),
-                "cell":    None if user["cell"] == "manager" else user["cell"],
+                "cell":    None if user["cell"] in ("manager", "store_manager") else user["cell"],
                 "shared":  False,
             }
             st.session_state.memos.insert(0, new_memo)
