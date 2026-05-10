@@ -395,12 +395,37 @@ def _test_api_key(api_key: str):
             },
             json={
                 "model":      "gpt-4o-mini",
-                "messages":   [{"role": "user", "content": "ping"}],
+                "messages":   [{"role": "user", "content": "hi"}],
                 "max_tokens": 5,
             },
             timeout=15,
         )
-        resp.raise_for_status()
-        return True
+        if resp.ok:
+            return True
+
+        try:
+            err  = resp.json().get("error", {})
+            msg  = err.get("message", "")
+            code = err.get("code", "")
+        except Exception:
+            msg  = resp.text[:150]
+            code = ""
+
+        if resp.status_code == 401:
+            return "API 키가 유효하지 않습니다. 키를 다시 확인해주세요."
+        elif resp.status_code == 429:
+            if "insufficient_quota" in code or "quota" in msg.lower() or "billing" in msg.lower():
+                return "계정 크레딧 부족 — OpenAI 플랫폼에서 결제 정보를 확인해주세요. (키 자체는 유효합니다)"
+            else:
+                return "분당 요청 한도 초과 — 잠시 후 다시 테스트해주세요. (키 자체는 유효합니다)"
+        elif resp.status_code == 403:
+            return "API 접근 권한 없음 — 키의 프로젝트 권한을 확인해주세요."
+        else:
+            return f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}"
+
+    except req.exceptions.Timeout:
+        return "요청 시간 초과 (15초) — 네트워크 상태를 확인해주세요."
+    except req.exceptions.ConnectionError:
+        return "OpenAI 서버에 연결할 수 없습니다. 네트워크를 확인해주세요."
     except Exception as e:
         return str(e)[:120]

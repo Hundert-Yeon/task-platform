@@ -46,7 +46,28 @@ def _call_openai(messages: list[dict], max_tokens: int = 800) -> str:
         },
         timeout=30,
     )
-    resp.raise_for_status()
+
+    if not resp.ok:
+        try:
+            err  = resp.json().get("error", {})
+            msg  = err.get("message", "")
+            code = err.get("code", "")
+        except Exception:
+            msg  = resp.text[:200]
+            code = ""
+
+        if resp.status_code == 401:
+            raise Exception("API 키가 유효하지 않습니다. 키를 다시 확인해주세요.")
+        elif resp.status_code == 429:
+            if "insufficient_quota" in code or "quota" in msg.lower() or "billing" in msg.lower():
+                raise Exception("계정 크레딧이 부족합니다. OpenAI 플랫폼에서 결제 정보를 확인해주세요.")
+            else:
+                raise Exception("분당 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
+        elif resp.status_code == 403:
+            raise Exception("API 접근 권한이 없습니다. 키의 프로젝트 권한을 확인해주세요.")
+        else:
+            raise Exception(f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}")
+
     return resp.json()["choices"][0]["message"]["content"]
 
 
