@@ -1,15 +1,19 @@
 """
 utils/ai_helper.py
-OpenAI API 호출 헬퍼
+OpenAI REST API 직접 호출 (requests 사용 — openai SDK 비의존)
 """
 import streamlit as st
 import json
+import requests
 from datetime import date, timedelta
 from utils.state import EV_TYPES
 
+_OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+_MODEL      = "gpt-4o-mini"
+
 
 def _get_api_key() -> str:
-    """API 키 조회 순서: session_state(어드민 입력) → secrets.toml → 환경변수"""
+    """API 키 조회 순서: session_state → secrets.toml → 환경변수"""
     runtime_key = st.session_state.get("runtime_api_key", "")
     if runtime_key:
         return runtime_key
@@ -23,16 +27,32 @@ def _get_api_key() -> str:
     return key
 
 
-def get_client():
-    """OpenAI 클라이언트. API 키가 없으면 None 반환."""
+def _call_openai(messages: list[dict], max_tokens: int = 800) -> str:
+    """OpenAI Chat Completions API를 requests로 직접 호출"""
     key = _get_api_key()
     if not key:
-        return None
-    try:
-        from openai import OpenAI
-        return OpenAI(api_key=key)
-    except Exception:
-        return None
+        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+
+    resp = requests.post(
+        _OPENAI_URL,
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type":  "application/json",
+        },
+        json={
+            "model":      _MODEL,
+            "messages":   messages,
+            "max_tokens": max_tokens,
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"]
+
+
+# 하위 호환 (admin_view에서 import)
+def get_client():
+    return bool(_get_api_key())
 
 
 def build_team_context() -> str:
@@ -88,9 +108,8 @@ def build_team_context() -> str:
 
 
 def get_ai_checklist() -> list[dict]:
-    """오늘의 AI 체크리스트 생성. API 키 없으면 안내 항목 반환."""
-    client = get_client()
-    if client is None:
+    """오늘의 AI 체크리스트 생성."""
+    if not _get_api_key():
         return [
             {"icon": "🔑", "text": "AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요.", "level": "normal"},
             {"icon": "📋", "text": "영업기획팀 어드민 > AI API 키 설정에서 입력하세요.", "level": "normal"},
@@ -111,27 +130,19 @@ def get_ai_checklist() -> list[dict]:
 {ctx}"""
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=800,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        text = response.choices[0].message.content.strip()
+        text = _call_openai([{"role": "user", "content": prompt}], max_tokens=800)
         text = text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
     except Exception as e:
-        return [
-            {"icon": "⚠️", "text": f"AI 연결 오류: {str(e)[:60]}", "level": "urgent"}
-        ]
+        return [{"icon": "⚠️", "text": f"AI 연결 오류: {str(e)[:60]}", "level": "urgent"}]
 
 
 def chat_with_advisor(user_message: str, history: list[dict]) -> str:
     """AI 어드바이저 채팅 응답"""
-    client = get_client()
-    if client is None:
+    if not _get_api_key():
         return "⚠️ AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요."
 
-    ctx = build_team_context()
+    ctx   = build_team_context()
     user  = st.session_state.get("user", {})
     cfg   = st.session_state.get("cfg", {})
     units = cfg.get("units", {})
@@ -153,36 +164,25 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
     )
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=1000,
-            messages=messages,
-        )
-        return response.choices[0].message.content
+        return _call_openai(messages, max_tokens=1000)
     except Exception as e:
         return f"⚠️ AI 오류가 발생했습니다: {str(e)[:100]}"
 
 
 def extract_action_items(memo_content: str) -> str:
     """메모에서 Action Item 추출"""
-    client = get_client()
-    if client is None:
+    if not _get_api_key():
         return "⚠️ AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요."
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=500,
-            messages=[{
-                "role": "user",
-                "content": f"""다음 메모에서 Action Item을 최대 5개 추출하세요.
+        return _call_openai([{
+            "role": "user",
+            "content": f"""다음 메모에서 Action Item을 최대 5개 추출하세요.
 형식: "• [담당자]: [할일] (마감: [날짜/시기])"
 담당자나 마감이 불명확하면 "미정"으로 표기.
 설명 없이 목록만 출력.
 
 {memo_content}"""
-            }]
-        )
-        return response.choices[0].message.content
+        }], max_tokens=500)
     except Exception as e:
         return f"AI 오류: {str(e)[:80]}"

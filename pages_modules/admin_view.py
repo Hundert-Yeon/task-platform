@@ -385,14 +385,22 @@ def _save_key_to_secrets(api_key: str):
 
 def _test_api_key(api_key: str):
     """API 키 유효성 테스트. 성공이면 True, 실패면 오류 메시지 문자열 반환."""
+    import requests as req
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=5,
-            messages=[{"role": "user", "content": "ping"}],
+        resp = req.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type":  "application/json",
+            },
+            json={
+                "model":      "gpt-4o-mini",
+                "messages":   [{"role": "user", "content": "ping"}],
+                "max_tokens": 5,
+            },
+            timeout=15,
         )
+        resp.raise_for_status()
         return True
     except Exception as e:
         return str(e)[:120]
