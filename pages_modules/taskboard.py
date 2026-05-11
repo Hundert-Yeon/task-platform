@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from utils.state import (
     get_visible_tasks, STATUS_LIST, new_id, today_str, sync_tasks_to_calendar
 )
+from utils.ai_helper import get_ai_task_advice
 
 PRIORITY_LABELS = {"H": "높음", "M": "보통", "L": "낮음"}
 PRIORITY_COLORS = {"H": "#dc2626", "M": "#d97706", "L": "#059669"}
@@ -193,6 +194,35 @@ def render():
                         if st.button("삭제", key=f"del_{t['id']}", use_container_width=True):
                             st.session_state.tasks = [x for x in st.session_state.tasks if x["id"] != t["id"]]
                             sync_tasks_to_calendar()
+                            st.rerun()
+
+                    # ── AI 조언 버튼 / 패널 ───────────────────
+                    _advice_key = f"task_advice_{t['id']}"
+                    _advice     = st.session_state.get(_advice_key)
+                    if _advice:
+                        st.markdown(f"""
+                        <div style="background:linear-gradient(135deg,#0f172a,#0f3a2a);
+                                    border-radius:8px;padding:10px 12px;margin:3px 0">
+                          <div style="font-size:8.5px;letter-spacing:2px;font-weight:700;
+                                      color:rgba(255,255,255,0.45);margin-bottom:5px">✦ AI 조언</div>
+                          <div style="font-size:10.5px;color:rgba(255,255,255,0.88);
+                                      line-height:1.7;white-space:pre-wrap">{_advice}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        _ac1, _ac2 = st.columns(2)
+                        with _ac1:
+                            if st.button("↺ 재생성", key=f"regen_adv_{t['id']}", use_container_width=True):
+                                with st.spinner("AI 재생성 중..."):
+                                    st.session_state[_advice_key] = get_ai_task_advice(t)
+                                st.rerun()
+                        with _ac2:
+                            if st.button("× 닫기", key=f"close_adv_{t['id']}", use_container_width=True):
+                                del st.session_state[_advice_key]
+                                st.rerun()
+                    else:
+                        if st.button("✦ AI 조언", key=f"adv_btn_{t['id']}", use_container_width=True):
+                            with st.spinner("AI 분석 중..."):
+                                st.session_state[_advice_key] = get_ai_task_advice(t)
                             st.rerun()
 
             # 컬럼 하단 추가 버튼

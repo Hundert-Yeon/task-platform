@@ -4,9 +4,7 @@ pages_modules/dashboard.py
 """
 import streamlit as st
 from datetime import date, timedelta
-from utils.state import (
-    get_visible_tasks, STATUS_LIST, new_id, today_str, sync_tasks_to_calendar
-)
+from utils.state import get_visible_tasks, STATUS_LIST
 from utils.ai_helper import get_ai_checklist
 from pages_modules.taskboard import _task_form, _task_detail_popup
 
@@ -19,21 +17,10 @@ PRI_TEXT_COLOR  = {"H": "#b91c1c", "M": "#b45309", "L": "#065f46"}
 LEVEL_COLORS = {"urgent": "#fca5a5", "normal": "#93c5fd", "ok": "#6ee7b7"}
 LEVEL_LABELS = {"urgent": "긴급", "normal": "확인", "ok": "양호"}
 
-AVATAR_COLORS = ["#1d4ed8","#059669","#7c3aed","#b45309","#dc2626","#0891b2","#be185d"]
-
 
 def _esc(text: str) -> str:
     return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-
-def _avatar_html(name: str) -> str:
-    name = name or "?"
-    color = AVATAR_COLORS[sum(ord(c) for c in name) % len(AVATAR_COLORS)]
-    return (
-        f'<span style="display:inline-flex;align-items:center;justify-content:center;'
-        f'width:17px;height:17px;border-radius:4px;background:{color};color:white;'
-        f'font-size:8.5px;font-weight:700;flex-shrink:0">{_esc(name[0])}</span>'
-    )
 
 
 def render():
@@ -184,7 +171,8 @@ def _render_kanban(tasks: list, units: dict):
                 ci         = units.get(t.get("cell", ""), {})
                 cell_bg    = ci.get("color", "#9ca3af")
                 cell_nm    = ci.get("name", t.get("cell", ""))
-                shared_bl  = "border-left:3px solid #059669;" if t.get("shared") else ""
+                shared_bl  = ("border-left:3px solid #7c3aed;" if t.get("shared_branch")
+                              else ("border-left:3px solid #059669;" if t.get("shared") else ""))
                 assignee   = t.get("assignee", "미정") or "미정"
 
                 st.markdown(

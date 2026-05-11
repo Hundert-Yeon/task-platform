@@ -146,8 +146,8 @@ def render():
 
         # ── AI API 키 설정 / 파일 저장소 설정 (영업기획팀 전용) ────
         if st.session_state.get("current_team_id") == "sales_planning":
-            st.markdown("#### 🤖 AI API 키 설정")
-            st.caption("여기서 설정한 키는 모든 팀에서 공용으로 사용됩니다.")
+            st.markdown("#### 🤖 Gemini AI API 키 설정")
+            st.caption("Google Gemini API 키 — 여기서 설정하면 모든 팀 AI 기능에 공용 적용됩니다.")
             _render_api_key_section()
             st.divider()
             st.markdown("#### 📁 파일 저장소 설정")
@@ -328,10 +328,10 @@ def _render_api_key_section():
 
     with st.form("api_key_form"):
         new_key = st.text_input(
-            "OpenAI API Key",
+            "Google Gemini API Key",
             type="password",
-            placeholder="sk-...",
-            help="OpenAI Platform에서 발급받은 API 키를 입력하세요",
+            placeholder="AIza...",
+            help="Google AI Studio(aistudio.google.com)에서 발급받은 API 키를 입력하세요",
         )
         save_col, test_col, clear_col = st.columns(3)
         save_clicked  = save_col.form_submit_button("💾 저장",   type="primary", use_container_width=True)
@@ -341,14 +341,14 @@ def _render_api_key_section():
     if save_clicked:
         if not new_key.strip():
             st.error("API 키를 입력해주세요.")
-        elif not new_key.strip().startswith("sk-"):
-            st.error("올바른 OpenAI API 키 형식이 아닙니다 (sk- 로 시작해야 합니다).")
+        elif len(new_key.strip()) < 15:
+            st.error("올바른 Gemini API 키 형식이 아닙니다.")
         else:
             key = new_key.strip()
             st.session_state.runtime_api_key = key
             _save_key_to_secrets(key)
             st.session_state.pop("ai_checklist_cache", None)
-            st.success("API 키가 저장됐습니다! 전체 팀 AI 기능이 활성화됩니다.")
+            st.success("Gemini API 키가 저장됐습니다! 전체 팀 AI 기능이 활성화됩니다.")
             st.rerun()
 
     if test_clicked:
@@ -382,10 +382,11 @@ def _save_key_to_secrets(api_key: str):
         if secrets_file.exists():
             lines = secrets_file.read_text(encoding="utf-8").splitlines()
 
-        lines = [l for l in lines if not l.strip().startswith("OPENAI_API_KEY")
+        lines = [l for l in lines if not l.strip().startswith("GEMINI_API_KEY")
+                                  and not l.strip().startswith("OPENAI_API_KEY")
                                   and not l.strip().startswith("ANTHROPIC_API_KEY")]
         if api_key:
-            lines.append(f'OPENAI_API_KEY = "{api_key}"')
+            lines.append(f'GEMINI_API_KEY = "{api_key}"')
 
         secrets_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
     except Exception as e:
@@ -393,19 +394,16 @@ def _save_key_to_secrets(api_key: str):
 
 
 def _test_api_key(api_key: str):
-    """API 키 유효성 테스트. 성공이면 True, 실패면 오류 메시지 문자열 반환."""
+    """Gemini API 키 유효성 테스트. 성공이면 True, 실패면 오류 메시지 문자열 반환."""
     import requests as req
+    _GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+    _MODEL       = "gemini-2.0-flash"
     try:
         resp = req.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type":  "application/json",
-            },
+            f"{_GEMINI_BASE}/{_MODEL}:generateContent?key={api_key}",
             json={
-                "model":      "gpt-4o-mini",
-                "messages":   [{"role": "user", "content": "hi"}],
-                "max_tokens": 5,
+                "contents": [{"role": "user", "parts": [{"text": "hi"}]}],
+                "generationConfig": {"maxOutputTokens": 5},
             },
             timeout=15,
         )
@@ -413,28 +411,21 @@ def _test_api_key(api_key: str):
             return True
 
         try:
-            err  = resp.json().get("error", {})
-            msg  = err.get("message", "")
-            code = err.get("code", "")
+            err = resp.json().get("error", {})
+            msg = err.get("message", "")
         except Exception:
-            msg  = resp.text[:150]
-            code = ""
+            msg = resp.text[:150]
 
-        if resp.status_code == 401:
-            return "API 키가 유효하지 않습니다. 키를 다시 확인해주세요."
+        if resp.status_code in (400, 401, 403):
+            return "API 키가 유효하지 않습니다. Google AI Studio에서 키를 확인해주세요."
         elif resp.status_code == 429:
-            if "insufficient_quota" in code or "quota" in msg.lower() or "billing" in msg.lower():
-                return "계정 크레딧 부족 — OpenAI 플랫폼에서 결제 정보를 확인해주세요. (키 자체는 유효합니다)"
-            else:
-                return "분당 요청 한도 초과 — 잠시 후 다시 테스트해주세요. (키 자체는 유효합니다)"
-        elif resp.status_code == 403:
-            return "API 접근 권한 없음 — 키의 프로젝트 권한을 확인해주세요."
+            return "요청 한도 초과 — 잠시 후 다시 테스트해주세요. (키 자체는 유효합니다)"
         else:
             return f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}"
 
     except req.exceptions.Timeout:
         return "요청 시간 초과 (15초) — 네트워크 상태를 확인해주세요."
     except req.exceptions.ConnectionError:
-        return "OpenAI 서버에 연결할 수 없습니다. 네트워크를 확인해주세요."
+        return "Google 서버에 연결할 수 없습니다. 네트워크를 확인해주세요."
     except Exception as e:
         return str(e)[:120]

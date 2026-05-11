@@ -1,6 +1,6 @@
 """
 utils/ai_helper.py
-OpenAI REST API 직접 호출 (requests 사용 — openai SDK 비의존)
+Google Gemini REST API 직접 호출 (requests 사용 — SDK 비의존)
 """
 import streamlit as st
 import json
@@ -8,8 +8,8 @@ import requests
 from datetime import date, timedelta
 from utils.state import EV_TYPES
 
-_OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-_MODEL      = "gpt-4o-mini"
+_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+_MODEL       = "gemini-2.0-flash"
 
 
 def _get_api_key() -> str:
@@ -18,57 +18,98 @@ def _get_api_key() -> str:
     if runtime_key:
         return runtime_key
     try:
-        key = st.secrets.get("OPENAI_API_KEY", "")
+        key = st.secrets.get("GEMINI_API_KEY", "")
     except Exception:
         key = ""
     if not key:
         import os
-        key = os.environ.get("OPENAI_API_KEY", "")
+        key = os.environ.get("GEMINI_API_KEY", "")
     return key
 
 
-def _call_openai(messages: list[dict], max_tokens: int = 800) -> str:
-    """OpenAI Chat Completions API를 requests로 직접 호출"""
+def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000) -> str:
+    """Gemini generateContent API를 requests로 직접 호출 (단일 turn)"""
     key = _get_api_key()
     if not key:
-        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+        raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
+
+    body: dict = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
+    }
+    if system:
+        body["systemInstruction"] = {"parts": [{"text": system}]}
 
     resp = requests.post(
-        _OPENAI_URL,
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type":  "application/json",
-        },
-        json={
-            "model":      _MODEL,
-            "messages":   messages,
-            "max_tokens": max_tokens,
-        },
+        f"{_GEMINI_BASE}/{_MODEL}:generateContent?key={key}",
+        json=body,
         timeout=30,
     )
 
     if not resp.ok:
         try:
-            err  = resp.json().get("error", {})
-            msg  = err.get("message", "")
-            code = err.get("code", "")
+            err = resp.json().get("error", {})
+            msg = err.get("message", "")
         except Exception:
-            msg  = resp.text[:200]
-            code = ""
+            msg = resp.text[:200]
 
-        if resp.status_code == 401:
-            raise Exception("API 키가 유효하지 않습니다. 키를 다시 확인해주세요.")
+        if resp.status_code in (400, 401, 403):
+            raise Exception("API 키가 유효하지 않습니다. Gemini API 키를 다시 확인해주세요.")
         elif resp.status_code == 429:
-            if "insufficient_quota" in code or "quota" in msg.lower() or "billing" in msg.lower():
-                raise Exception("계정 크레딧이 부족합니다. OpenAI 플랫폼에서 결제 정보를 확인해주세요.")
-            else:
-                raise Exception("분당 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
-        elif resp.status_code == 403:
-            raise Exception("API 접근 권한이 없습니다. 키의 프로젝트 권한을 확인해주세요.")
+            raise Exception("요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
         else:
             raise Exception(f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}")
 
-    return resp.json()["choices"][0]["message"]["content"]
+    candidates = resp.json().get("candidates", [])
+    if not candidates:
+        raise Exception("Gemini 응답이 비어있습니다. 다시 시도해주세요.")
+    return candidates[0]["content"]["parts"][0]["text"]
+
+
+def _call_gemini_chat(messages: list[dict], system: str = "", max_tokens: int = 1000) -> str:
+    """멀티턴 채팅용 Gemini 호출.
+    messages는 {"role": "user" | "assistant", "content": "..."} 형식."""
+    key = _get_api_key()
+    if not key:
+        raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
+
+    # OpenAI 형식 → Gemini 형식 변환 (assistant → model)
+    contents = []
+    for m in messages:
+        role = "model" if m["role"] == "assistant" else "user"
+        contents.append({"role": role, "parts": [{"text": m["content"]}]})
+
+    body: dict = {
+        "contents": contents,
+        "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
+    }
+    if system:
+        body["systemInstruction"] = {"parts": [{"text": system}]}
+
+    resp = requests.post(
+        f"{_GEMINI_BASE}/{_MODEL}:generateContent?key={key}",
+        json=body,
+        timeout=30,
+    )
+
+    if not resp.ok:
+        try:
+            err = resp.json().get("error", {})
+            msg = err.get("message", "")
+        except Exception:
+            msg = resp.text[:200]
+
+        if resp.status_code in (400, 401, 403):
+            raise Exception("API 키가 유효하지 않습니다.")
+        elif resp.status_code == 429:
+            raise Exception("요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
+        else:
+            raise Exception(f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}")
+
+    candidates = resp.json().get("candidates", [])
+    if not candidates:
+        raise Exception("Gemini 응답이 비어있습니다.")
+    return candidates[0]["content"]["parts"][0]["text"]
 
 
 # 하위 호환 (admin_view에서 import)
@@ -93,8 +134,7 @@ def build_team_context() -> str:
     tasks_txt = "\n".join(
         f"- [{unit_name(t['cell'])}] {t['title']} | 마감:{t['due']} | "
         f"담당:{t.get('assignee','미정')} | "
-        f"상태:{'대기' if t['status']=='todo' else '진행중' if t['status']=='inprog' else '완료' if t['status']=='done' else '보류'} | "
-        f"공유:{'Y' if t.get('shared') else 'N'}"
+        f"상태:{'대기' if t['status']=='todo' else '진행중' if t['status']=='inprog' else '완료' if t['status']=='done' else '보류'}"
         for t in tasks
     ) or "없음"
 
@@ -132,7 +172,7 @@ def get_ai_checklist() -> list[dict]:
     """오늘의 AI 체크리스트 생성."""
     if not _get_api_key():
         return [
-            {"icon": "🔑", "text": "AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요.", "level": "normal"},
+            {"icon": "🔑", "text": "AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요.", "level": "normal"},
             {"icon": "📋", "text": "영업기획팀 어드민 > AI API 키 설정에서 입력하세요.", "level": "normal"},
         ]
 
@@ -151,17 +191,92 @@ def get_ai_checklist() -> list[dict]:
 {ctx}"""
 
     try:
-        text = _call_openai([{"role": "user", "content": prompt}], max_tokens=800)
+        text = _call_gemini(prompt, max_tokens=800)
         text = text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
     except Exception as e:
         return [{"icon": "⚠️", "text": f"AI 연결 오류: {str(e)[:60]}", "level": "urgent"}]
 
 
+def get_ai_task_advice(task: dict) -> str:
+    """특정 Task에 대한 AI 조언 생성 (유통업계 트렌드·리스크·전략 포함)"""
+    if not _get_api_key():
+        return "AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요."
+
+    cfg       = st.session_state.get("cfg", {})
+    units     = cfg.get("units", {})
+    cell_name = units.get(task.get("cell", ""), {}).get("name", task.get("cell", ""))
+    ctx       = build_team_context()
+
+    status_labels = {"todo": "대기", "inprog": "진행중", "done": "완료", "hold": "보류"}
+    pri_labels    = {"H": "높음", "M": "보통", "L": "낮음"}
+
+    prompt = f"""당신은 롯데백화점 인천점 비즈니스 어드바이저입니다.
+다음 업무에 대해 실질적이고 전문적인 조언을 제공해주세요.
+
+=== 대상 업무 ===
+제목: {task.get('title', '')}
+담당 조직: {cell_name}
+담당자: {task.get('assignee', '미정')}
+마감일: {task.get('due', '미정')}
+우선순위: {pri_labels.get(task.get('pri', 'M'), '보통')}
+현재 상태: {status_labels.get(task.get('status', 'todo'), '대기')}
+세부 내용: {task.get('desc', '없음')}
+
+=== 팀 전체 현황 ===
+{ctx}
+
+위 업무에 대해 아래 4가지 관점에서 각 2~3문장으로 조언해주세요:
+• 💡 실행 전략: 업무를 효과적으로 추진하는 구체적인 방법
+• 📈 트렌드 & 인사이트: 관련 유통업계·사회·경제적 트렌드
+• ⚠️ 리스크 & 주의사항: 잠재적 위험요소와 대응 방안
+• 🏆 참고 사례: 유사 업무의 성공 전략이나 벤치마킹 포인트
+
+한국어로 간결하고 전문적으로 작성하세요."""
+
+    try:
+        return _call_gemini(prompt, max_tokens=700)
+    except Exception as e:
+        return f"⚠️ AI 조언 오류: {str(e)[:80]}"
+
+
+def get_ai_memo_advice(memo_title: str, memo_content: str) -> str:
+    """메모/회의록에 대한 AI 조언 생성 (사회·경제·문화 인사이트 포함)"""
+    if not _get_api_key():
+        return "AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요."
+
+    ctx = build_team_context()
+
+    prompt = f"""당신은 롯데백화점 인천점 비즈니스 어드바이저입니다.
+다음 메모/회의록에 대해 전문적인 조언과 인사이트를 제공해주세요.
+
+=== 메모 내용 ===
+제목: {memo_title}
+내용:
+{memo_content}
+
+=== 팀 전체 현황 ===
+{ctx}
+
+위 메모 내용에 대해 아래 관점에서 조언해주세요:
+• 💡 핵심 인사이트: 이 메모의 가장 중요한 전략적 포인트
+• 📊 데이터 & 근거: 주요 결정을 뒷받침할 업계 데이터나 사례
+• 🔗 연관 업무: 현재 팀 Task·일정과의 연계 가능성
+• ⚠️ 리스크 & 고려사항: 놓칠 수 있는 리스크나 추가 검토 사항
+• 🌐 외부 환경: 관련 사회·경제·소비 트렌드나 경쟁 환경 변화
+
+한국어로 간결하고 실용적으로 작성하세요."""
+
+    try:
+        return _call_gemini(prompt, max_tokens=700)
+    except Exception as e:
+        return f"⚠️ AI 조언 오류: {str(e)[:80]}"
+
+
 def chat_with_advisor(user_message: str, history: list[dict]) -> str:
     """AI 어드바이저 채팅 응답"""
     if not _get_api_key():
-        return "⚠️ AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요."
+        return "⚠️ AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요."
 
     ctx   = build_team_context()
     user  = st.session_state.get("user", {})
@@ -178,14 +293,10 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
 위 팀 내부 데이터와 함께 외부 유통업계 트렌드·마케팅 사례·전략 등을 활용해
 실질적이고 구체적인 조언을 제공하세요. 한국어로 친절하고 전문적으로 답변하세요."""
 
-    messages = (
-        [{"role": "system", "content": system}]
-        + history[-10:]
-        + [{"role": "user", "content": user_message}]
-    )
+    messages = history[-10:] + [{"role": "user", "content": user_message}]
 
     try:
-        return _call_openai(messages, max_tokens=1000)
+        return _call_gemini_chat(messages, system=system, max_tokens=1000)
     except Exception as e:
         return f"⚠️ AI 오류가 발생했습니다: {str(e)[:100]}"
 
@@ -193,17 +304,16 @@ def chat_with_advisor(user_message: str, history: list[dict]) -> str:
 def extract_action_items(memo_content: str) -> str:
     """메모에서 Action Item 추출"""
     if not _get_api_key():
-        return "⚠️ AI 기능을 사용하려면 OPENAI_API_KEY를 설정하세요."
+        return "⚠️ AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요."
 
-    try:
-        return _call_openai([{
-            "role": "user",
-            "content": f"""다음 메모에서 Action Item을 최대 5개 추출하세요.
+    prompt = f"""다음 메모에서 Action Item을 최대 5개 추출하세요.
 형식: "• [담당자]: [할일] (마감: [날짜/시기])"
 담당자나 마감이 불명확하면 "미정"으로 표기.
 설명 없이 목록만 출력.
 
 {memo_content}"""
-        }], max_tokens=500)
+
+    try:
+        return _call_gemini(prompt, max_tokens=500)
     except Exception as e:
         return f"AI 오류: {str(e)[:80]}"
