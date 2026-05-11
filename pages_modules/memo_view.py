@@ -4,7 +4,7 @@ pages_modules/memo_view.py  — 메모장
 import streamlit as st
 from datetime import date
 from utils.state import get_visible_memos, new_id
-from utils.ai_helper import extract_action_items, get_ai_memo_advice
+from utils.ai_helper import extract_action_items
 
 
 def render():
@@ -130,6 +130,7 @@ def render():
             if st.button("💾 저장", use_container_width=True):
                 memo["date"] = date.today().isoformat()
                 if memo.get("content", "").strip():
+                    from utils.ai_helper import get_ai_memo_advice
                     with st.spinner("저장 & AI 조언 생성 중..."):
                         _adv = get_ai_memo_advice(
                             memo.get("title", "제목 없음"), memo["content"]
@@ -150,6 +151,7 @@ def render():
         with col_advice:
             if st.button("✦ AI 조언", use_container_width=True):
                 if memo.get("content", "").strip():
+                    from utils.ai_helper import get_ai_memo_advice
                     with st.spinner("AI 분석 중..."):
                         _adv = get_ai_memo_advice(
                             memo.get("title", "제목 없음"), memo["content"]
@@ -182,6 +184,7 @@ def render():
             with _adv_c1:
                 if st.button("↺ 재생성", key=f"regen_adv_{memo['id']}", use_container_width=True):
                     if memo.get("content", "").strip():
+                        from utils.ai_helper import get_ai_memo_advice
                         with st.spinner("AI 재생성 중..."):
                             st.session_state[f"memo_advice_{memo['id']}"] = get_ai_memo_advice(
                                 memo.get("title", "제목 없음"), memo["content"]

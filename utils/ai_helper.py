@@ -56,7 +56,7 @@ def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000) -> str:
         if resp.status_code in (400, 401, 403):
             raise Exception("API 키가 유효하지 않습니다. Gemini API 키를 다시 확인해주세요.")
         elif resp.status_code == 429:
-            raise Exception("요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
+            raise Exception("Gemini 무료 플랜 요청 한도에 잠시 걸렸습니다. 1분 후 다시 시도해주세요.")
         else:
             raise Exception(f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}")
 
@@ -102,7 +102,7 @@ def _call_gemini_chat(messages: list[dict], system: str = "", max_tokens: int = 
         if resp.status_code in (400, 401, 403):
             raise Exception("API 키가 유효하지 않습니다.")
         elif resp.status_code == 429:
-            raise Exception("요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
+            raise Exception("Gemini 무료 플랜 요청 한도에 잠시 걸렸습니다. 1분 후 다시 시도해주세요.")
         else:
             raise Exception(f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}")
 

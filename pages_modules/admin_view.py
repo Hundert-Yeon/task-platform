@@ -360,6 +360,11 @@ def _render_api_key_section():
                 result = _test_api_key(key_to_test)
             if result is True:
                 st.success("✅ API 연결 성공!")
+            elif result == "rate_limited":
+                st.warning(
+                    "⚠️ API 키는 유효합니다. 현재 Gemini 무료 플랜의 분당 요청 한도(RPM)에 잠시 걸렸습니다. "
+                    "AI 기능은 정상 동작하며 잠시 후 자동으로 해소됩니다."
+                )
             else:
                 st.error(f"❌ 연결 실패: {result}")
 
@@ -419,7 +424,7 @@ def _test_api_key(api_key: str):
         if resp.status_code in (400, 401, 403):
             return "API 키가 유효하지 않습니다. Google AI Studio에서 키를 확인해주세요."
         elif resp.status_code == 429:
-            return "요청 한도 초과 — 잠시 후 다시 테스트해주세요. (키 자체는 유효합니다)"
+            return "rate_limited"
         else:
             return f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}"
 

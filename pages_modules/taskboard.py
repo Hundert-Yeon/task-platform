@@ -7,7 +7,6 @@ from datetime import date, timedelta
 from utils.state import (
     get_visible_tasks, STATUS_LIST, new_id, today_str, sync_tasks_to_calendar
 )
-from utils.ai_helper import get_ai_task_advice
 
 PRIORITY_LABELS = {"H": "높음", "M": "보통", "L": "낮음"}
 PRIORITY_COLORS = {"H": "#dc2626", "M": "#d97706", "L": "#059669"}
@@ -212,6 +211,7 @@ def render():
                         _ac1, _ac2 = st.columns(2)
                         with _ac1:
                             if st.button("↺ 재생성", key=f"regen_adv_{t['id']}", use_container_width=True):
+                                from utils.ai_helper import get_ai_task_advice
                                 with st.spinner("AI 재생성 중..."):
                                     st.session_state[_advice_key] = get_ai_task_advice(t)
                                 st.rerun()
@@ -221,6 +221,7 @@ def render():
                                 st.rerun()
                     else:
                         if st.button("✦ AI 조언", key=f"adv_btn_{t['id']}", use_container_width=True):
+                            from utils.ai_helper import get_ai_task_advice
                             with st.spinner("AI 분석 중..."):
                                 st.session_state[_advice_key] = get_ai_task_advice(t)
                             st.rerun()
