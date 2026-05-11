@@ -162,28 +162,78 @@ def render():
                     cell_name = units.get(t["cell"], {}).get("name", t["cell"])
                     desc_str  = t.get("desc", "").strip()
                     desc_part = (
-                        f"<div style='font-size:10px;color:#9ca3af;margin-top:5px;"
+                        f"<div style='font-size:10px;color:#9ca3af;margin-top:4px;"
                         f"overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;"
                         f"-webkit-box-orient:vertical'>{_esc(desc_str)}</div>"
                         if desc_str else ""
                     )
 
-                    # ── 통합 카드 (한 박스) ───────────────────
+                    # ── 카드: CSS + 마커 (gap 제거 + 버튼 스타일) ──
                     st.markdown(f"""
-                    <div style="background:white;border-radius:8px;padding:11px 12px;margin:6px 0;
-                                box-shadow:0 1px 4px rgba(0,0,0,0.07);
-                                border-top:2px solid {pri_color};border-left:3px solid {shared_bl}">
-                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                    <span data-cid="{t['id']}" style="display:none"></span>
+                    <style>
+                    [data-testid="stVerticalBlock"]:has(>[data-testid]>[data-testid]>[data-testid="stMarkdown"]>
+                      [data-testid="stMarkdownContainer"]>[data-cid="{t['id']}"]) {{
+                        row-gap: 0 !important;
+                    }}
+                    [data-testid="stVerticalBlock"]:has([data-cid="{t['id']}"]) > * > * >
+                      [data-testid="stButton"] > button,
+                    [data-testid="stVerticalBlock"]:has([data-cid="{t['id']}"]) > * > * >
+                      [data-testid="stButton"] > button[data-testid="stBaseButton-secondary"] {{
+                        background: white !important;
+                        border-top: none !important;
+                        border-left: 3px solid {shared_bl} !important;
+                        border-right: 1px solid #e5e7eb !important;
+                        border-bottom: none !important;
+                        border-radius: 0 !important;
+                        box-shadow: none !important;
+                        text-align: left !important;
+                        font-size: 13px !important;
+                        font-weight: 700 !important;
+                        color: #111827 !important;
+                        padding: 6px 12px 7px !important;
+                        white-space: normal !important;
+                        line-height: 1.45 !important;
+                        min-height: unset !important;
+                    }}
+                    [data-testid="stVerticalBlock"]:has([data-cid="{t['id']}"]) > * > * >
+                      [data-testid="stButton"] > button:hover {{
+                        background: #f0f4ff !important;
+                        color: #1d4ed8 !important;
+                    }}
+                    </style>
+                    """, unsafe_allow_html=True)
+
+                    # ── 카드 상단: 우선순위·공유 뱃지 ─────────────
+                    st.markdown(f"""
+                    <div style="background:white;border-radius:8px 8px 0 0;
+                                padding:9px 12px 4px;margin-top:6px;
+                                border-top:2px solid {pri_color};
+                                border-left:3px solid {shared_bl};
+                                border-right:1px solid #e5e7eb">
+                      <div style="display:flex;justify-content:space-between;align-items:center">
                         <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;
                                      background:{pri_color}22;color:{pri_color}">
                           {PRIORITY_LABELS.get(t.get('pri','M'),'보통')}
                         </span>
                         <span style="font-size:10px;color:#9ca3af">{shared_ico}</span>
                       </div>
-                      <div style="font-size:13px;font-weight:700;color:#111827;
-                                  line-height:1.45;margin-bottom:8px">
-                        {_esc(t['title'])}
-                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # ── 제목 버튼 (클릭 → 상세 팝업) ─────────────
+                    if st.button(t['title'], key=f"det_{t['id']}", use_container_width=True):
+                        st.session_state.detail_task_id = t["id"]
+                        st.rerun()
+
+                    # ── 카드 하단: 셀 뱃지·마감일·담당자 ─────────
+                    st.markdown(f"""
+                    <div style="background:white;padding:4px 12px 10px;
+                                border-left:3px solid {shared_bl};
+                                border-right:1px solid #e5e7eb;
+                                border-bottom:1px solid #e5e7eb;
+                                border-radius:0 0 8px 8px;
+                                box-shadow:0 2px 5px rgba(0,0,0,0.06)">
                       <div style="display:flex;align-items:center;gap:5px">
                         <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;
                                      background:{cell_color};color:white">

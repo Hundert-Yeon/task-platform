@@ -276,12 +276,8 @@ def render():
     today         = date.today()
     today_str_val = today.isoformat()
 
-    # ── query param 처리 (날짜 클릭 / 업무 카드 클릭) ──────────
-    task_det = st.query_params.get("task_det", None)
-    q_day    = st.query_params.get("cal_day",  None)
-
-    if task_det:
-        st.session_state.detail_task_id = task_det
+    # ── query param 처리 (날짜 클릭) ─────────────────────────
+    q_day = st.query_params.get("cal_day", None)
     if q_day:
         try:
             q_d = date.fromisoformat(q_day)
@@ -290,9 +286,7 @@ def render():
             st.session_state.cal_month    = q_d.month
         except ValueError:
             pass
-
-    if task_det or q_day:
-        st.query_params.clear()   # 파라미터 제거 후 자동 rerun
+        st.query_params.clear()
         st.stop()
 
     if "cal_year"     not in st.session_state: st.session_state.cal_year     = today.year
@@ -428,7 +422,6 @@ def render():
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
         def _task_rows(ev_list, is_past: bool = False):
-            cards_html = ""
             for ev in ev_list:
                 task_id = ev.get("taskId")
                 if not task_id:
@@ -457,21 +450,21 @@ def render():
                     f"border-radius:3px;background:{cc};color:white;margin-left:6px'>{cn}</span>"
                 ) if cn else ""
 
-                cards_html += (
-                    f"<a href='?task_det={task_id}' style='display:block;text-decoration:none;"
-                    f"background:{card_bg};border:{card_border};"
+                st.markdown(
+                    f"<div style='background:{card_bg};border:{card_border};"
                     f"border-left:3px solid {l_color};"
-                    f"border-radius:8px;padding:9px 12px;margin:4px 0;"
-                    f"cursor:pointer;{fade}'>"
+                    f"border-radius:8px;padding:9px 12px;margin:4px 0 2px;{fade}'>"
                     f"<div style='font-size:12px;font-weight:600;color:#1f2937;"
                     f"line-height:1.5;word-break:keep-all;{strike}'>{badge} {title}</div>"
                     f"<div style='font-size:10.5px;color:#6b7280;margin-top:4px;"
                     f"display:flex;align-items:center'>"
                     f"📅 {ev['date']}{cell_badge}"
-                    f"</div></a>"
+                    f"</div></div>",
+                    unsafe_allow_html=True,
                 )
-            if cards_html:
-                st.markdown(cards_html, unsafe_allow_html=True)
+                if st.button("↗ 상세보기", key=f"cal_det_{task_id}", use_container_width=True):
+                    st.session_state.detail_task_id = task_id
+                    st.rerun()
 
         if upcoming:
             _task_rows(upcoming, False)

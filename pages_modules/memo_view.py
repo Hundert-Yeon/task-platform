@@ -86,6 +86,18 @@ def render():
             st.info("왼쪽에서 메모를 선택하거나 새 메모를 만드세요.")
             return
 
+        # 메모 열 때 AI 조언 자동 생성
+        if memo.get("content", "").strip() and not st.session_state.get(f"memo_advice_{memo['id']}"):
+            from utils.ai_helper import get_ai_memo_advice, get_client
+            if get_client():
+                with st.spinner("AI 조언 생성 중..."):
+                    try:
+                        st.session_state[f"memo_advice_{memo['id']}"] = get_ai_memo_advice(
+                            memo.get("title", "제목 없음"), memo["content"]
+                        )
+                    except Exception:
+                        pass
+
         # 소속 뱃지
         editor_cell_info  = cfg_units.get(memo.get("cell", ""), {})
         editor_cell_name  = editor_cell_info.get("name", "")
@@ -112,7 +124,7 @@ def render():
             memo["date"]     = date.today().isoformat()
 
         # 하단 툴바
-        col_share, col_save, col_ai, col_advice, col_del = st.columns([2, 1.2, 1.5, 1.5, 1])
+        col_share, col_save, col_ai, col_advice, col_del = st.columns([2, 1.2, 1.5, 1.3, 1])
 
         with col_share:
             _s_opts = ["비공개", "팀 공유", "점 공유"]
@@ -149,10 +161,10 @@ def render():
                     st.toast("내용을 먼저 입력하세요.", icon="⚠️")
 
         with col_advice:
-            if st.button("✦ AI 조언", use_container_width=True):
+            if st.button("↺ AI 재생성", use_container_width=True):
                 if memo.get("content", "").strip():
                     from utils.ai_helper import get_ai_memo_advice
-                    with st.spinner("AI 분석 중..."):
+                    with st.spinner("AI 재생성 중..."):
                         _adv = get_ai_memo_advice(
                             memo.get("title", "제목 없음"), memo["content"]
                         )
@@ -180,20 +192,6 @@ def render():
                           white-space:pre-wrap">{memo_advice}</div>
             </div>
             """, unsafe_allow_html=True)
-            _adv_c1, _adv_c2 = st.columns(2)
-            with _adv_c1:
-                if st.button("↺ 재생성", key=f"regen_adv_{memo['id']}", use_container_width=True):
-                    if memo.get("content", "").strip():
-                        from utils.ai_helper import get_ai_memo_advice
-                        with st.spinner("AI 재생성 중..."):
-                            st.session_state[f"memo_advice_{memo['id']}"] = get_ai_memo_advice(
-                                memo.get("title", "제목 없음"), memo["content"]
-                            )
-                        st.rerun()
-            with _adv_c2:
-                if st.button("✕ 조언 닫기", key=f"close_adv_{memo['id']}", use_container_width=True):
-                    st.session_state.pop(f"memo_advice_{memo['id']}", None)
-                    st.rerun()
 
         # ── Action Items 표시 ────────────────────────────────
         action_result = st.session_state.get(f"action_result_{memo['id']}")
