@@ -198,10 +198,10 @@ def get_ai_checklist() -> list[dict]:
         return [{"icon": "⚠️", "text": f"AI 연결 오류: {str(e)[:60]}", "level": "urgent"}]
 
 
-def get_ai_task_advice(task: dict) -> str:
-    """특정 Task에 대한 AI 조언 생성 (유통업계 트렌드·리스크·전략 포함)"""
+def get_ai_task_advice(task: dict) -> list[dict]:
+    """특정 Task에 대한 AI 조언 생성 — JSON 배열 형식 (체크리스트와 동일 구조)"""
     if not _get_api_key():
-        return "AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요."
+        return [{"icon": "🔑", "text": "AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요.", "level": "normal"}]
 
     cfg       = st.session_state.get("cfg", {})
     units     = cfg.get("units", {})
@@ -211,8 +211,8 @@ def get_ai_task_advice(task: dict) -> str:
     status_labels = {"todo": "대기", "inprog": "진행중", "done": "완료", "hold": "보류"}
     pri_labels    = {"H": "높음", "M": "보통", "L": "낮음"}
 
-    prompt = f"""당신은 롯데백화점 인천점 비즈니스 어드바이저입니다.
-다음 업무에 대해 실질적이고 전문적인 조언을 제공해주세요.
+    prompt = f"""당신은 롯데백화점 인천점 AI 어드바이저입니다.
+다음 업무에 대한 AI 조언을 JSON 배열로만 응답하세요 (설명 없이).
 
 === 대상 업무 ===
 제목: {task.get('title', '')}
@@ -226,18 +226,20 @@ def get_ai_task_advice(task: dict) -> str:
 === 팀 전체 현황 ===
 {ctx}
 
-위 업무에 대해 아래 4가지 관점에서 각 2~3문장으로 조언해주세요:
-• 💡 실행 전략: 업무를 효과적으로 추진하는 구체적인 방법
-• 📈 트렌드 & 인사이트: 관련 유통업계·사회·경제적 트렌드
-• ⚠️ 리스크 & 주의사항: 잠재적 위험요소와 대응 방안
-• 🏆 참고 사례: 유사 업무의 성공 전략이나 벤치마킹 포인트
-
-한국어로 간결하고 전문적으로 작성하세요."""
+규칙:
+- 정확히 4개 항목
+- JSON 배열로만 응답 (설명 없이)
+- 형식: [{{"icon":"이모지","text":"조언 내용 1~2문장","level":"urgent|normal|ok"}}]
+- level 기준: urgent(리스크·긴급 대응), normal(실행 전략·트렌드), ok(순조·긍정 인사이트)
+- icon 권장: 💡(실행전략) 📈(트렌드&인사이트) ⚠️(리스크) 🏆(참고사례)
+- 한국어로 간결하고 실용적으로"""
 
     try:
-        return _call_gemini(prompt, max_tokens=700)
+        text = _call_gemini(prompt, max_tokens=600)
+        text = text.replace("```json", "").replace("```", "").strip()
+        return json.loads(text)
     except Exception as e:
-        return f"⚠️ AI 조언 오류: {str(e)[:80]}"
+        return [{"icon": "⚠️", "text": f"AI 조언 오류: {str(e)[:60]}", "level": "urgent"}]
 
 
 def get_ai_memo_advice(memo_title: str, memo_content: str) -> str:

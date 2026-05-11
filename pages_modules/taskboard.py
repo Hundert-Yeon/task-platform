@@ -118,41 +118,6 @@ def render():
     if filter_cell != "all":
         visible = [t for t in visible if t["cell"] == filter_cell]
 
-    # ── 카드 제목 버튼 스타일 ────────────────────────────────
-    st.markdown("""
-    <style>
-    [data-testid="stVerticalBlockBorderWrapper"]:has([data-cardtop])
-      + [data-testid="stVerticalBlockBorderWrapper"]
-      button[data-testid="stBaseButton-secondary"],
-    [data-testid="element-container"]:has([data-cardtop])
-      + [data-testid="element-container"]
-      button[data-testid="stBaseButton-secondary"] {
-        text-align: left !important;
-        background: white !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        color: #111827 !important;
-        font-size: 13px !important;
-        font-weight: 600 !important;
-        padding: 5px 12px 7px !important;
-        min-height: unset !important;
-        line-height: 1.45 !important;
-        white-space: normal !important;
-        cursor: pointer !important;
-    }
-    [data-testid="stVerticalBlockBorderWrapper"]:has([data-cardtop])
-      + [data-testid="stVerticalBlockBorderWrapper"]
-      button[data-testid="stBaseButton-secondary"]:hover,
-    [data-testid="element-container"]:has([data-cardtop])
-      + [data-testid="element-container"]
-      button[data-testid="stBaseButton-secondary"]:hover {
-        background: #eff6ff !important;
-        color: #1d4ed8 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     # ── 칸반 보드 ────────────────────────────────────────────
     today = date.today()
     in3   = today + timedelta(days=3)
@@ -180,48 +145,48 @@ def render():
                 with st.container():
                     shared_bl = ("#7c3aed" if t.get("shared_branch")
                                  else ("#059669" if t.get("shared") else "transparent"))
+                    cell_name = units.get(t["cell"], {}).get("name", t["cell"])
+                    desc_str  = t.get("desc", "").strip()
+                    desc_part = (
+                        f"<div style='font-size:10px;color:#9ca3af;margin-top:5px;"
+                        f"overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;"
+                        f"-webkit-box-orient:vertical'>{_esc(desc_str)}</div>"
+                        if desc_str else ""
+                    )
 
-                    # 카드 상단: 우선순위 뱃지 + 공유 아이콘
+                    # ── 통합 카드 (한 박스) ───────────────────
                     st.markdown(f"""
-                    <div data-cardtop="{t['id']}" style="background:white;
-                                border-radius:8px 8px 0 0;padding:9px 12px 5px;margin-top:6px;
-                                border-top:2px solid {pri_color};border-left:3px solid {shared_bl};
-                                border-right:1px solid #e5e7eb">
-                      <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="background:white;border-radius:8px;padding:11px 12px;margin:6px 0;
+                                box-shadow:0 1px 4px rgba(0,0,0,0.07);
+                                border-top:2px solid {pri_color};border-left:3px solid {shared_bl}">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
                         <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;
                                      background:{pri_color}22;color:{pri_color}">
                           {PRIORITY_LABELS.get(t.get('pri','M'),'보통')}
                         </span>
                         <span style="font-size:10px;color:#9ca3af">{shared_ico}</span>
                       </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    # 제목 클릭 → 상세보기
-                    if st.button(t['title'], key=f"det_{t['id']}", use_container_width=True):
-                        st.session_state.detail_task_id = t["id"]
-                        st.rerun()
-
-                    # 카드 하단: 셀 뱃지, 마감일, 담당자
-                    st.markdown(f"""
-                    <div style="background:white;padding:4px 12px 10px;
-                                border-left:3px solid {shared_bl};border-right:1px solid #e5e7eb;
-                                border-bottom:1px solid #e5e7eb;border-radius:0 0 8px 8px;
-                                box-shadow:0 2px 5px rgba(0,0,0,0.06)">
+                      <div style="font-size:13px;font-weight:700;color:#111827;
+                                  line-height:1.45;margin-bottom:8px">
+                        {_esc(t['title'])}
+                      </div>
                       <div style="display:flex;align-items:center;gap:5px">
                         <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;
                                      background:{cell_color};color:white">
-                          {units.get(t['cell'],{}).get('name', t['cell'])}
+                          {_esc(cell_name)}
                         </span>
                         <span style="font-size:10px;color:{due_color};margin-left:auto;font-family:monospace">
                           ~{t.get('due','')}
                         </span>
                       </div>
-                      <div style="font-size:10.5px;color:#6b7280;margin-top:4px">👤 {t.get('assignee','미정')}</div>
+                      <div style="font-size:10.5px;color:#6b7280;margin-top:4px">
+                        👤 {_esc(t.get('assignee','미정'))}
+                      </div>
+                      {desc_part}
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # 액션 버튼 3개 — 한 줄
+                    # ── 액션 버튼 3개 — 한 줄 ────────────────
                     bc1, bc2, bc3 = st.columns(3)
                     with bc1:
                         if st.button("수정", key=f"edit_{t['id']}", use_container_width=True):
@@ -237,39 +202,55 @@ def render():
                             st.rerun()
                     with bc3:
                         if st.button("삭제", key=f"del_{t['id']}", use_container_width=True):
-                            st.session_state.tasks = [x for x in st.session_state.tasks if x["id"] != t["id"]]
+                            st.session_state.tasks = [x for x in st.session_state.tasks
+                                                      if x["id"] != t["id"]]
                             sync_tasks_to_calendar()
                             st.rerun()
 
-                    # ── AI 조언 버튼 / 패널 ───────────────────
-                    _advice_key = f"task_advice_{t['id']}"
-                    _advice     = st.session_state.get(_advice_key)
-                    if _advice:
+                    # ── AI 조언 (AI 체크리스트 스타일) ──────────
+                    _adv_key   = f"task_advice_{t['id']}"
+                    _adv_items = st.session_state.get(_adv_key)
+
+                    if _adv_items:
+                        _LVLC = {"urgent":"#fca5a5","normal":"#93c5fd","ok":"#6ee7b7"}
+                        _LVLL = {"urgent":"긴급","normal":"확인","ok":"양호"}
+                        _rows = ""
+                        _src  = _adv_items if isinstance(_adv_items, list) else []
+                        for _it in _src:
+                            _lv = _it.get("level","normal")
+                            _rows += (
+                                f"<div style='background:rgba(255,255,255,0.07);border-radius:6px;"
+                                f"padding:6px 8px;margin:3px 0;display:flex;align-items:flex-start;"
+                                f"gap:7px;border:1px solid rgba(255,255,255,0.08)'>"
+                                f"<span style='font-size:12px;flex-shrink:0'>{_it.get('icon','📌')}</span>"
+                                f"<span style='font-size:11px;color:rgba(255,255,255,0.9);"
+                                f"flex:1;line-height:1.5'>{_esc(str(_it.get('text','')))}</span>"
+                                f"<span style='font-size:9px;font-weight:700;background:rgba(0,0,0,0.3);"
+                                f"color:{_LVLC.get(_lv,'#93c5fd')};padding:1px 5px;border-radius:3px;"
+                                f"flex-shrink:0'>{_LVLL.get(_lv,'확인')}</span>"
+                                f"</div>"
+                            )
+                        if not _rows and isinstance(_adv_items, str):
+                            _rows = (f"<div style='font-size:11px;color:rgba(255,255,255,0.9);"
+                                     f"line-height:1.7;white-space:pre-wrap'>{_esc(_adv_items)}</div>")
                         st.markdown(f"""
-                        <div style="background:linear-gradient(135deg,#0f172a,#0f3a2a);
-                                    border-radius:8px;padding:10px 12px;margin:3px 0">
-                          <div style="font-size:8.5px;letter-spacing:2px;font-weight:700;
-                                      color:rgba(255,255,255,0.45);margin-bottom:5px">✦ AI 조언</div>
-                          <div style="font-size:10.5px;color:rgba(255,255,255,0.88);
-                                      line-height:1.7;white-space:pre-wrap">{_advice}</div>
+                        <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);
+                                    border-radius:8px;padding:10px 12px;margin:2px 0">
+                          <div style="font-size:9px;letter-spacing:2px;font-weight:700;
+                                      color:rgba(255,255,255,0.5);margin-bottom:6px">✦ AI 조언</div>
+                          {_rows}
                         </div>
                         """, unsafe_allow_html=True)
-                        _ac1, _ac2 = st.columns(2)
-                        with _ac1:
-                            if st.button("↺ 재생성", key=f"regen_adv_{t['id']}", use_container_width=True):
-                                from utils.ai_helper import get_ai_task_advice
-                                with st.spinner("AI 재생성 중..."):
-                                    st.session_state[_advice_key] = get_ai_task_advice(t)
-                                st.rerun()
-                        with _ac2:
-                            if st.button("× 닫기", key=f"close_adv_{t['id']}", use_container_width=True):
-                                del st.session_state[_advice_key]
-                                st.rerun()
+                        if st.button("↺ 재생성", key=f"regen_adv_{t['id']}", use_container_width=True):
+                            from utils.ai_helper import get_ai_task_advice
+                            with st.spinner("AI 재생성 중..."):
+                                st.session_state[_adv_key] = get_ai_task_advice(t)
+                            st.rerun()
                     else:
                         if st.button("✦ AI 조언", key=f"adv_btn_{t['id']}", use_container_width=True):
                             from utils.ai_helper import get_ai_task_advice
                             with st.spinner("AI 분석 중..."):
-                                st.session_state[_advice_key] = get_ai_task_advice(t)
+                                st.session_state[_adv_key] = get_ai_task_advice(t)
                             st.rerun()
 
             # 컬럼 하단 추가 버튼
