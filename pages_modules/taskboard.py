@@ -158,7 +158,7 @@ def render():
 
                 with st.container():
                     shared_bl = ("#7c3aed" if t.get("shared_branch")
-                                 else ("#059669" if t.get("shared") else "transparent"))
+                                 else ("#059669" if t.get("shared") else "#e5e7eb"))
                     cell_name = units.get(t["cell"], {}).get("name", t["cell"])
                     desc_str  = t.get("desc", "").strip()
                     desc_part = (
@@ -167,114 +167,86 @@ def render():
                         f"-webkit-box-orient:vertical'>{_esc(desc_str)}</div>"
                         if desc_str else ""
                     )
+                    _uid = t['id']
+                    # onclick: 이 div의 stElementContainer 다음 형제에서 hidden 버튼 클릭
+                    _js = (
+                        "var el=this,p=el.parentElement;"
+                        "while(p&&p.getAttribute('data-testid')!=='stVerticalBlock')"
+                        "{el=p;p=p.parentElement;}"
+                        "var n=el.nextElementSibling;"
+                        "if(n){var b=n.querySelector('button');if(b)b.click();}"
+                    )
 
-                    # ── 카드: CSS + 마커 (gap 제거 + 버튼 스타일) ──
+                    # ── 카드 (ONE box) + hidden popup 트리거 ──────
                     st.markdown(f"""
-                    <span data-cid="{t['id']}" style="display:none"></span>
+                    <span data-cid="{_uid}" style="display:none"></span>
                     <style>
-                    [data-testid="stVerticalBlock"]:has(>[data-testid]>[data-testid]>[data-testid="stMarkdown"]>
-                      [data-testid="stMarkdownContainer"]>[data-cid="{t['id']}"]) {{
-                        row-gap: 0 !important;
-                    }}
-                    [data-testid="stVerticalBlock"]:has([data-cid="{t['id']}"]) > * > * >
-                      [data-testid="stButton"] > button,
-                    [data-testid="stVerticalBlock"]:has([data-cid="{t['id']}"]) > * > * >
-                      [data-testid="stButton"] > button[data-testid="stBaseButton-secondary"] {{
-                        background: white !important;
-                        border-top: none !important;
-                        border-left: 3px solid {shared_bl} !important;
-                        border-right: 1px solid #e5e7eb !important;
-                        border-bottom: none !important;
-                        border-radius: 0 !important;
-                        box-shadow: none !important;
-                        text-align: left !important;
-                        font-size: 13px !important;
-                        font-weight: 700 !important;
-                        color: #111827 !important;
-                        padding: 6px 12px 7px !important;
-                        white-space: normal !important;
-                        line-height: 1.45 !important;
-                        min-height: unset !important;
-                    }}
-                    [data-testid="stVerticalBlock"]:has([data-cid="{t['id']}"]) > * > * >
-                      [data-testid="stButton"] > button:hover {{
-                        background: #f0f4ff !important;
-                        color: #1d4ed8 !important;
+                    [data-testid="stVerticalBlock"]:has([data-cid="{_uid}"])
+                      > *:has([data-cid="{_uid}"]) + * {{
+                        display: none !important;
                     }}
                     </style>
-                    """, unsafe_allow_html=True)
-
-                    # ── 카드 상단: 우선순위·공유 뱃지 ─────────────
-                    st.markdown(f"""
-                    <div style="background:white;border-radius:8px 8px 0 0;
-                                padding:9px 12px 4px;margin-top:6px;
-                                border-top:2px solid {pri_color};
-                                border-left:3px solid {shared_bl};
-                                border-right:1px solid #e5e7eb">
-                      <div style="display:flex;justify-content:space-between;align-items:center">
-                        <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;
-                                     background:{pri_color}22;color:{pri_color}">
+                    <div onclick="{_js}" style="cursor:pointer;background:white;
+                         border-radius:8px;border-top:2px solid {pri_color};
+                         border-left:3px solid {shared_bl};border-right:1px solid #e5e7eb;
+                         border-bottom:1px solid #e5e7eb;padding:9px 12px 10px;
+                         margin-top:6px;box-shadow:0 2px 5px rgba(0,0,0,0.06)">
+                      <div style="display:flex;justify-content:space-between;
+                                  align-items:center;margin-bottom:5px">
+                        <span style="font-size:9px;font-weight:800;padding:2px 6px;
+                                     border-radius:3px;background:{pri_color}22;color:{pri_color}">
                           {PRIORITY_LABELS.get(t.get('pri','M'),'보통')}
                         </span>
                         <span style="font-size:10px;color:#9ca3af">{shared_ico}</span>
                       </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    # ── 제목 버튼 (클릭 → 상세 팝업) ─────────────
-                    if st.button(t['title'], key=f"det_{t['id']}", use_container_width=True):
-                        st.session_state.detail_task_id = t["id"]
-                        st.rerun()
-
-                    # ── 카드 하단: 셀 뱃지·마감일·담당자 ─────────
-                    st.markdown(f"""
-                    <div style="background:white;padding:4px 12px 10px;
-                                border-left:3px solid {shared_bl};
-                                border-right:1px solid #e5e7eb;
-                                border-bottom:1px solid #e5e7eb;
-                                border-radius:0 0 8px 8px;
-                                box-shadow:0 2px 5px rgba(0,0,0,0.06)">
-                      <div style="display:flex;align-items:center;gap:5px">
-                        <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;
-                                     background:{cell_color};color:white">
+                      <div style="font-size:13px;font-weight:700;color:#111827;
+                                  line-height:1.45;word-break:keep-all;margin-bottom:6px">
+                        {_esc(t['title'])}
+                      </div>
+                      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+                        <span style="font-size:10px;font-weight:700;padding:2px 6px;
+                                     border-radius:3px;background:{cell_color};color:white">
                           {_esc(cell_name)}
                         </span>
-                        <span style="font-size:10px;color:{due_color};margin-left:auto;font-family:monospace">
-                          ~{t.get('due','')}
-                        </span>
+                        <span style="font-size:10px;color:{due_color};margin-left:auto;
+                                     font-family:monospace">~{t.get('due','')}</span>
                       </div>
-                      <div style="font-size:10.5px;color:#6b7280;margin-top:4px">
+                      <div style="font-size:10.5px;color:#6b7280">
                         👤 {_esc(t.get('assignee','미정'))}
                       </div>
                       {desc_part}
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # ── 액션 버튼 3개 — 한 줄 ────────────────
+                    # hidden 팝업 트리거 버튼 (CSS로 숨김)
+                    if st.button("​", key=f"det_{_uid}", use_container_width=True):
+                        st.session_state.detail_task_id = _uid
+                        st.rerun()
+
+                    # ── 액션 버튼 3개 — 한 줄 ────────────────────
                     bc1, bc2, bc3 = st.columns(3)
                     with bc1:
-                        if st.button("수정", key=f"edit_{t['id']}", use_container_width=True):
-                            st.session_state.edit_task_id    = t["id"]
+                        if st.button("✏️ 수정", key=f"edit_{_uid}", use_container_width=True):
+                            st.session_state.edit_task_id    = _uid
                             st.session_state.show_task_modal = True
                     with bc2:
                         nst_label, nst_key = _next_status(t["status"])
                         btn_lbl = f"→{nst_label}" if nst_label else "─"
-                        if st.button(btn_lbl, key=f"mv_{t['id']}", use_container_width=True,
+                        if st.button(btn_lbl, key=f"mv_{_uid}", use_container_width=True,
                                      disabled=not nst_key):
                             t["status"] = nst_key
                             sync_tasks_to_calendar()
                             st.rerun()
                     with bc3:
-                        if st.button("삭제", key=f"del_{t['id']}", use_container_width=True):
+                        if st.button("🗑 삭제", key=f"del_{_uid}", use_container_width=True):
                             st.session_state.tasks = [x for x in st.session_state.tasks
-                                                      if x["id"] != t["id"]]
+                                                      if x["id"] != _uid]
                             sync_tasks_to_calendar()
                             st.rerun()
 
-                    # ── AI 조언 (AI 체크리스트 스타일) ──────────
-                    _adv_key   = f"task_advice_{t['id']}"
+                    # ── AI 조언 (댓글 스타일, 자동 표시) ────────
+                    _adv_key   = f"task_advice_{_uid}"
                     _adv_items = st.session_state.get(_adv_key)
-
                     if _adv_items:
                         _LVLC = {"urgent":"#fca5a5","normal":"#93c5fd","ok":"#6ee7b7"}
                         _LVLL = {"urgent":"긴급","normal":"확인","ok":"양호"}
@@ -294,22 +266,15 @@ def render():
                                 f"flex-shrink:0'>{_LVLL.get(_lv,'확인')}</span>"
                                 f"</div>"
                             )
-                        if not _rows and isinstance(_adv_items, str):
-                            _rows = (f"<div style='font-size:11px;color:rgba(255,255,255,0.9);"
-                                     f"line-height:1.7;white-space:pre-wrap'>{_esc(_adv_items)}</div>")
-                        st.markdown(f"""
-                        <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);
-                                    border-radius:8px;padding:10px 12px;margin:2px 0">
-                          <div style="font-size:9px;letter-spacing:2px;font-weight:700;
-                                      color:rgba(255,255,255,0.5);margin-bottom:6px">✦ AI 조언</div>
-                          {_rows}
-                        </div>
-                        """, unsafe_allow_html=True)
-                        if st.button("↺ 재생성", key=f"regen_adv_{t['id']}", use_container_width=True):
-                            from utils.ai_helper import get_ai_task_advice
-                            with st.spinner("AI 재생성 중..."):
-                                st.session_state[_adv_key] = get_ai_task_advice(t)
-                            st.rerun()
+                        if _rows:
+                            st.markdown(f"""
+                            <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);
+                                        border-radius:8px;padding:10px 12px;margin:3px 0 6px">
+                              <div style="font-size:9px;letter-spacing:2px;font-weight:700;
+                                          color:rgba(255,255,255,0.45);margin-bottom:6px">✦ AI 조언</div>
+                              {_rows}
+                            </div>
+                            """, unsafe_allow_html=True)
 
             # 컬럼 하단 추가 버튼
             if st.button(f"＋", key=f"add_col_{status['key']}", use_container_width=True):

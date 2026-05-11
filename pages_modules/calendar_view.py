@@ -422,6 +422,13 @@ def render():
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
         def _task_rows(ev_list, is_past: bool = False):
+            _js = (
+                "var el=this,p=el.parentElement;"
+                "while(p&&p.getAttribute('data-testid')!=='stVerticalBlock')"
+                "{el=p;p=p.parentElement;}"
+                "var n=el.nextElementSibling;"
+                "if(n){var b=n.querySelector('button');if(b)b.click();}"
+            )
             for ev in ev_list:
                 task_id = ev.get("taskId")
                 if not task_id:
@@ -450,10 +457,17 @@ def render():
                     f"border-radius:3px;background:{cc};color:white;margin-left:6px'>{cn}</span>"
                 ) if cn else ""
 
+                # hidden 트리거 CSS: 카드 다음 형제 element-container 숨김
+                safe_cid = f"cc{task_id.replace('-','')}"
                 st.markdown(
-                    f"<div style='background:{card_bg};border:{card_border};"
-                    f"border-left:3px solid {l_color};"
-                    f"border-radius:8px;padding:9px 12px;margin:4px 0 2px;{fade}'>"
+                    f"<span data-cid='{safe_cid}' style='display:none'></span>"
+                    f"<style>"
+                    f"[data-testid='stVerticalBlock']:has([data-cid='{safe_cid}'])"
+                    f" > *:has([data-cid='{safe_cid}']) + * {{display:none!important;}}"
+                    f"</style>"
+                    f"<div onclick=\"{_js}\" style='cursor:pointer;background:{card_bg};"
+                    f"border:{card_border};border-left:3px solid {l_color};"
+                    f"border-radius:8px;padding:9px 12px;margin:4px 0;{fade}'>"
                     f"<div style='font-size:12px;font-weight:600;color:#1f2937;"
                     f"line-height:1.5;word-break:keep-all;{strike}'>{badge} {title}</div>"
                     f"<div style='font-size:10.5px;color:#6b7280;margin-top:4px;"
@@ -462,7 +476,8 @@ def render():
                     f"</div></div>",
                     unsafe_allow_html=True,
                 )
-                if st.button("↗ 상세보기", key=f"cal_det_{task_id}", use_container_width=True):
+                # hidden 팝업 트리거 버튼 (CSS로 숨겨짐)
+                if st.button("​", key=f"cal_det_{task_id}", use_container_width=True):
                     st.session_state.detail_task_id = task_id
                     st.rerun()
 
