@@ -35,8 +35,9 @@ DEFAULT_MENU_VISIBILITY = {
 
 # ── 지점 전역 설정 ────────────────────────────────────────────────
 DEFAULT_BRANCH_CFG = {
-    "branch_name":      "인천점",
-    "store_manager_pw": "0000",
+    "branch_name":          "인천점",
+    "store_manager_pw":     "0000",
+    "global_files_enabled": True,
 }
 
 # ── 팀 정의 ──────────────────────────────────────────────────────
@@ -104,50 +105,65 @@ def new_id() -> str:
 def seed_tasks():
     return [
         {"id": new_id(), "title": "6월 여름 프로모션 기획서 작성", "cell": "marketing",
-         "pri": "H", "assignee": "김민준", "due": today_str(2),  "status": "inprog", "desc": "", "shared": False},
+         "pri": "H", "assignee": "김민준", "due": today_str(2),  "status": "inprog",
+         "desc": "", "shared": False, "shared_branch": False},
         {"id": new_id(), "title": "카카오톡 발송 리스트 정제",     "cell": "marketing",
-         "pri": "M", "assignee": "윤지수", "due": today_str(4),  "status": "inprog", "desc": "", "shared": False},
+         "pri": "M", "assignee": "윤지수", "due": today_str(4),  "status": "inprog",
+         "desc": "", "shared": False, "shared_branch": False},
         {"id": new_id(), "title": "2F 리뉴얼 CRM 효과 분석",     "cell": "analysis",
-         "pri": "H", "assignee": "박지호", "due": today_str(3),  "status": "inprog", "desc": "", "shared": True},
+         "pri": "H", "assignee": "박지호", "due": today_str(3),  "status": "inprog",
+         "desc": "", "shared": True,  "shared_branch": False},
         {"id": new_id(), "title": "3F 월간 매출 현황 보고서",     "cell": "analysis",
-         "pri": "H", "assignee": "이수민", "due": today_str(0),  "status": "inprog", "desc": "", "shared": False},
+         "pri": "H", "assignee": "이수민", "due": today_str(0),  "status": "inprog",
+         "desc": "", "shared": False, "shared_branch": False},
         {"id": new_id(), "title": "앱 푸시 A/B 테스트 설계",     "cell": "online",
-         "pri": "M", "assignee": "정도현", "due": today_str(5),  "status": "todo",   "desc": "", "shared": False},
+         "pri": "M", "assignee": "정도현", "due": today_str(5),  "status": "todo",
+         "desc": "", "shared": False, "shared_branch": False},
         {"id": new_id(), "title": "신규 브랜드 입점 협의",        "cell": "md",
-         "pri": "H", "assignee": "오재원", "due": today_str(1),  "status": "inprog", "desc": "", "shared": True},
+         "pri": "H", "assignee": "오재원", "due": today_str(1),  "status": "inprog",
+         "desc": "", "shared": True,  "shared_branch": False},
         {"id": new_id(), "title": "MD 행사 상품 리스트 작성",     "cell": "md",
-         "pri": "M", "assignee": "강지원", "due": today_str(9),  "status": "todo",   "desc": "", "shared": False},
+         "pri": "M", "assignee": "강지원", "due": today_str(9),  "status": "todo",
+         "desc": "", "shared": False, "shared_branch": False},
     ]
 
 
 def seed_tasks_support():
     return [
         {"id": new_id(), "title": "신규 직원 채용 공고 작성",   "cell": "hr_part",
-         "pri": "H", "assignee": "이인사", "due": today_str(3),  "status": "inprog", "desc": "", "shared": False},
+         "pri": "H", "assignee": "이인사", "due": today_str(3),  "status": "inprog",
+         "desc": "", "shared": False, "shared_branch": False},
         {"id": new_id(), "title": "복리후생 제도 개선안 검토",   "cell": "hr_part",
-         "pri": "M", "assignee": "김복지", "due": today_str(7),  "status": "todo",   "desc": "", "shared": False},
+         "pri": "M", "assignee": "김복지", "due": today_str(7),  "status": "todo",
+         "desc": "", "shared": False, "shared_branch": False},
         {"id": new_id(), "title": "사무용품 재고 확인 및 발주", "cell": "support_part",
-         "pri": "M", "assignee": "박지원", "due": today_str(2),  "status": "inprog", "desc": "", "shared": False},
+         "pri": "M", "assignee": "박지원", "due": today_str(2),  "status": "inprog",
+         "desc": "", "shared": False, "shared_branch": False},
         {"id": new_id(), "title": "매장 청소 업체 계약 갱신",   "cell": "support_part",
-         "pri": "H", "assignee": "최관리", "due": today_str(5),  "status": "todo",   "desc": "", "shared": True},
+         "pri": "H", "assignee": "최관리", "due": today_str(5),  "status": "todo",
+         "desc": "", "shared": True,  "shared_branch": False},
     ]
 
 
 def seed_events():
     return [
         {"id": new_id(), "title": "6월 정기 영업회의",    "date": today_str(3),
-         "type": "meeting",  "note": "전 셀 참석", "shared": True,  "cell": None, "source": "manual"},
+         "type": "meeting",  "note": "전 셀 참석", "shared": True,  "shared_branch": False,
+         "cell": None, "source": "manual"},
         {"id": new_id(), "title": "여름 프로모션 런칭",   "date": today_str(7),
-         "type": "promo",    "note": "전층 동시",  "shared": True,  "cell": None, "source": "manual"},
+         "type": "promo",    "note": "전층 동시",  "shared": True,  "shared_branch": False,
+         "cell": None, "source": "manual"},
         {"id": new_id(), "title": "2F CRM 분석 보고",    "date": today_str(5),
-         "type": "deadline", "note": "팀장 보고",  "shared": False, "cell": "analysis", "source": "manual"},
+         "type": "deadline", "note": "팀장 보고",  "shared": False, "shared_branch": False,
+         "cell": "analysis", "source": "manual"},
     ]
 
 
 def seed_events_support():
     return [
         {"id": new_id(), "title": "월례 직원 회의", "date": today_str(5),
-         "type": "meeting", "note": "전 직원 참석", "shared": True, "cell": None, "source": "manual"},
+         "type": "meeting", "note": "전 직원 참석", "shared": True, "shared_branch": False,
+         "cell": None, "source": "manual"},
     ]
 
 
@@ -155,10 +171,10 @@ def seed_memos():
     return [
         {"id": new_id(), "title": "6월 전략회의 회의록",
          "content": "참석: 팀장, 각 유닛·셀장\n\n- 여름 프로모션 일정 확정 필요\n- CRM 분석 결과 이번주 금요일까지 공유\n- 온라인 배너 교체 예정",
-         "date": today_str(0), "cell": "marketing", "shared": True},
+         "date": today_str(0), "cell": "marketing", "shared": True, "shared_branch": False},
         {"id": new_id(), "title": "MD 신규 브랜드 검토",
          "content": "검토 브랜드: A, B브랜드\n위치: 2F 명품관\n예상 기여: 월 +8%",
-         "date": today_str(-1), "cell": "md", "shared": False},
+         "date": today_str(-1), "cell": "md", "shared": False, "shared_branch": False},
     ]
 
 
@@ -166,7 +182,7 @@ def seed_memos_support():
     return [
         {"id": new_id(), "title": "6월 채용 계획",
          "content": "- 영업직 3명 신규 채용 예정\n- 면접: 6월 중순\n- 합격자 발표: 6월 말",
-         "date": today_str(0), "cell": "hr_part", "shared": False},
+         "date": today_str(0), "cell": "hr_part", "shared": False, "shared_branch": False},
     ]
 
 
@@ -260,7 +276,7 @@ def can_see_task(task: dict) -> bool:
         return False
     if user["cell"] in ("manager", "store_manager"):
         return True
-    return task["cell"] == user["cell"] or task.get("shared", False)
+    return task["cell"] == user["cell"] or task.get("shared", False) or task.get("shared_branch", False)
 
 
 def can_see_event(event: dict) -> bool:
@@ -269,7 +285,8 @@ def can_see_event(event: dict) -> bool:
         return False
     if user["cell"] in ("manager", "store_manager"):
         return True
-    return event.get("shared", False) or event.get("cell") == user["cell"] or not event.get("cell")
+    return (event.get("shared", False) or event.get("shared_branch", False)
+            or event.get("cell") == user["cell"] or not event.get("cell"))
 
 
 def can_see_memo(memo: dict) -> bool:
@@ -278,7 +295,8 @@ def can_see_memo(memo: dict) -> bool:
         return False
     if user["cell"] in ("manager", "store_manager"):
         return True
-    return memo.get("cell") == user["cell"] or memo.get("shared", False)
+    return (memo.get("cell") == user["cell"]
+            or memo.get("shared", False) or memo.get("shared_branch", False))
 
 
 def get_visible_tasks():
@@ -302,13 +320,14 @@ def sync_tasks_to_calendar():
     for t in st.session_state.tasks:
         if t.get("due") and t.get("status") != "done":
             st.session_state.events.append({
-                "id":     f"task_{t['id']}",
-                "taskId": t["id"],
-                "title":  f"[Task] {t['title']}",
-                "date":   t["due"],
-                "type":   "task",
-                "note":   f"담당: {t.get('assignee','미정')}",
-                "shared": t.get("shared", False),
-                "cell":   t["cell"],
-                "source": "task",
+                "id":            f"task_{t['id']}",
+                "taskId":        t["id"],
+                "title":         f"[Task] {t['title']}",
+                "date":          t["due"],
+                "type":          "task",
+                "note":          f"담당: {t.get('assignee','미정')}",
+                "shared":        t.get("shared", False),
+                "shared_branch": t.get("shared_branch", False),
+                "cell":          t["cell"],
+                "source":        "task",
             })

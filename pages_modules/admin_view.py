@@ -144,12 +144,21 @@ def render():
 
         st.divider()
 
-        # ── AI API 키 설정 (영업기획팀 전용 — 전체 팀 공용) ────
+        # ── AI API 키 설정 / 파일 저장소 설정 (영업기획팀 전용) ────
         if st.session_state.get("current_team_id") == "sales_planning":
             st.markdown("#### 🤖 AI API 키 설정")
             st.caption("여기서 설정한 키는 모든 팀에서 공용으로 사용됩니다.")
             _render_api_key_section()
             st.divider()
+            st.markdown("#### 📁 파일 저장소 설정")
+            st.caption("파일 저장소 메뉴를 전체 팀에 대해 활성화/비활성화합니다.")
+            _cur_files = st.session_state.branch_cfg.get("global_files_enabled", True)
+            _new_files = st.checkbox("파일 저장소 메뉴 활성화 (전팀 공통)", value=_cur_files,
+                                     key="global_files_toggle")
+            if _new_files != _cur_files:
+                st.session_state.branch_cfg["global_files_enabled"] = _new_files
+                st.success("파일 저장소 메뉴가 활성화됐습니다." if _new_files else "파일 저장소 메뉴가 비활성화됐습니다.")
+                st.rerun()
 
         st.divider()
 

@@ -94,8 +94,11 @@ def _event_form_dialog():
         col1, col2 = st.columns(2)
         ev_date   = col1.date_input("날짜", value=date.today())
         ev_type   = col2.selectbox("유형", list(EV_TYPES.keys()), format_func=lambda x: EV_TYPES[x])
-        ev_note   = st.text_input("메모")
-        ev_shared = st.checkbox("전체 공유", value=True)
+        ev_note  = st.text_input("메모")
+        _s_opts  = ["비공개", "팀 전체 공유", "부문·점 공유"]
+        _s_level = st.radio("공유 범위", _s_opts, index=1, horizontal=True)
+        ev_shared        = _s_level != "비공개"
+        ev_shared_branch = _s_level == "부문·점 공유"
         s1, s2 = st.columns(2)
         submitted = s1.form_submit_button("저장", type="primary", use_container_width=True)
         cancelled = s2.form_submit_button("취소", use_container_width=True)
@@ -104,7 +107,7 @@ def _event_form_dialog():
         st.session_state.events.append({
             "id": new_id(), "title": ev_title.strip(),
             "date": ev_date.isoformat(), "type": ev_type, "note": ev_note,
-            "shared": ev_shared,
+            "shared": ev_shared, "shared_branch": ev_shared_branch,
             "cell": None if user["cell"] in ("manager", "store_manager") else user["cell"],
             "source": "manual",
         })

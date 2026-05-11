@@ -53,19 +53,25 @@ def render():
         query      = st.text_input("🔍 파일 검색", placeholder="파일명 검색...")
 
         # 파일 업로드
+        _s_opts  = ["비공개", "팀 공유", "부문·점 공유"]
+        _s_level = st.radio("업로드 공유 범위", _s_opts, horizontal=True,
+                             key="upload_share_level", index=0)
         uploaded = st.file_uploader("파일 업로드", accept_multiple_files=True, label_visibility="collapsed")
         if uploaded:
+            _new_shared = _s_level != "비공개"
+            _new_branch = _s_level == "부문·점 공유"
             for f in uploaded:
                 folder = cur_folder if cur_folder != "all" else "etc"
                 st.session_state.files.append({
-                    "id":     new_id(),
-                    "name":   f.name,
-                    "size":   _fmt_bytes(f.size),
-                    "date":   date.today().isoformat(),
-                    "folder": folder,
-                    "cell":   None if user["cell"] in ("manager", "store_manager") else user["cell"],
-                    "tags":   [folder],
-                    "shared": False,
+                    "id":            new_id(),
+                    "name":          f.name,
+                    "size":          _fmt_bytes(f.size),
+                    "date":          date.today().isoformat(),
+                    "folder":        folder,
+                    "cell":          None if user["cell"] in ("manager", "store_manager") else user["cell"],
+                    "tags":          [folder],
+                    "shared":        _new_shared,
+                    "shared_branch": _new_branch,
                 })
             st.success(f"{len(uploaded)}개 파일이 업로드됐습니다!")
             st.rerun()
@@ -86,7 +92,7 @@ def render():
             for f in visible:
                 ext  = f["name"].rsplit(".", 1)[-1].lower() if "." in f["name"] else ""
                 ico  = ICONS.get(ext, "📎")
-                shared_tag = "🌐" if f.get("shared") else ""
+                shared_tag = "🏢" if f.get("shared_branch") else ("🌐" if f.get("shared") else "")
                 cell_name = units.get(f.get("cell",""), {}).get("name","")
 
                 c1, c2, c3, c4 = st.columns([3, 1, 1, 1])

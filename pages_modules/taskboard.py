@@ -36,8 +36,10 @@ def _task_detail_popup(task: dict):
     status_col  = status_info.get("color", "#6b7280")
 
     shared_badge = (
-        "<span style='font-size:12px;color:#059669;font-weight:700'>🌐 전체 공유</span>"
-        if task.get("shared") else ""
+        "<span style='font-size:12px;color:#7c3aed;font-weight:700'>🏢 부문·점 공유</span>"
+        if task.get("shared_branch") else (
+        "<span style='font-size:12px;color:#059669;font-weight:700'>🌐 팀 전체 공유</span>"
+        if task.get("shared") else "")
     )
 
     st.markdown(f"""
@@ -138,8 +140,9 @@ def render():
                 due_color   = "#dc2626" if is_ov else "#d97706" if is_soon else "#9ca3af"
                 pri_color   = PRIORITY_COLORS.get(t.get("pri","M"), "#9ca3af")
                 cell_color  = units.get(t["cell"], {}).get("color", "#999")
-                shared_border = "border-left:3px solid #059669;" if t.get("shared") else ""
-                shared_ico  = " 🌐" if t.get("shared") else ""
+                shared_border = ("border-left:3px solid #7c3aed;" if t.get("shared_branch")
+                                 else ("border-left:3px solid #059669;" if t.get("shared") else ""))
+                shared_ico  = " 🏢" if t.get("shared_branch") else (" 🌐" if t.get("shared") else "")
 
                 with st.container():
                     st.markdown(f"""
@@ -259,8 +262,13 @@ def _task_form():
             due_val = date.fromisoformat(edit_task["due"]) if edit_task and edit_task.get("due") else date.today() + timedelta(days=7)
             due = st.date_input("마감일", value=due_val)
 
-        desc   = st.text_area("상세 내용", value=edit_task.get("desc","") if edit_task else "", height=70)
-        shared = st.checkbox("전체 공유", value=edit_task.get("shared",False) if edit_task else False)
+        desc = st.text_area("상세 내용", value=edit_task.get("desc","") if edit_task else "", height=70)
+        _s_opts = ["비공개", "팀 전체 공유", "부문·점 공유"]
+        _s_def  = (2 if (edit_task.get("shared_branch", False) if edit_task else False)
+                   else (1 if (edit_task.get("shared", False) if edit_task else False) else 0))
+        share_level   = st.radio("공유 범위", _s_opts, index=_s_def, horizontal=True)
+        shared        = share_level != "비공개"
+        shared_branch = share_level == "부문·점 공유"
 
         # 셀 선택 (팀장만)
         if is_manager:
@@ -279,7 +287,7 @@ def _task_form():
         task_data = {
             "title": title.strip(), "cell": cell, "pri": pri,
             "assignee": assignee, "due": due.isoformat(),
-            "status": status, "desc": desc, "shared": shared,
+            "status": status, "desc": desc, "shared": shared, "shared_branch": shared_branch,
         }
         if edit_task:
             for t in st.session_state.tasks:

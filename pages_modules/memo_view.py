@@ -115,13 +115,16 @@ def render():
         col_share, col_save, col_ai, col_del = st.columns([2, 1.2, 1.5, 1])
 
         with col_share:
-            shared = st.checkbox("🌐 전체 공유",
-                                  value=memo.get("shared", False),
-                                  key=f"memo_share_{memo['id']}")
-            if shared != memo.get("shared"):
-                memo["shared"] = shared
-                msg = "전체 공유로 변경됐습니다" if shared else "공유가 해제됐습니다"
-                st.toast(msg)
+            _s_opts = ["비공개", "팀 공유", "점 공유"]
+            _s_cur  = 2 if memo.get("shared_branch") else (1 if memo.get("shared") else 0)
+            _s_new  = st.radio("공유", _s_opts, index=_s_cur, horizontal=True,
+                                key=f"memo_share_{memo['id']}", label_visibility="collapsed")
+            _new_shared = _s_new != "비공개"
+            _new_branch = _s_new == "점 공유"
+            if _new_shared != memo.get("shared") or _new_branch != memo.get("shared_branch"):
+                memo["shared"]        = _new_shared
+                memo["shared_branch"] = _new_branch
+                st.toast("공유 설정이 변경됐습니다")
 
         with col_save:
             if st.button("💾 저장", use_container_width=True):

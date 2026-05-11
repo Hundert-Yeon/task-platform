@@ -287,12 +287,14 @@ with st.sidebar:
         "📝 메모장":      "memo",
     }
 
+    global_files = st.session_state.branch_cfg.get("global_files_enabled", True)
+
     if user["cell"] in ("manager", "store_manager"):
         # 팀장/점장: menu_visibility 적용 + 전체공유피드 항상 표시
         pages = {
             label: key
             for label, key in ALL_PAGES.items()
-            if menu_vis.get(key, True)
+            if menu_vis.get(key, True) and (key != "files" or global_files)
         }
         if menu_vis.get("shared_feed", True):
             pages["🌐 전체 공유 피드"] = "shared_feed"
@@ -303,7 +305,7 @@ with st.sidebar:
         pages = {
             label: key
             for label, key in ALL_PAGES.items()
-            if menu_vis.get(key, True)
+            if menu_vis.get(key, True) and (key != "files" or global_files)
         }
 
     # 현재 페이지가 숨겨진 경우 첫 번째 표시 메뉴로 이동
