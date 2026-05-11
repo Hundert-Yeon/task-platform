@@ -198,10 +198,10 @@ def render():
                         <span style="font-size:10px;color:{due_color};margin-left:auto;
                                      font-family:monospace">~{t.get('due','')}</span>
                       </div>
-                      <div style="font-size:10.5px;color:#6b7280">
+                      {desc_part}
+                      <div style="font-size:10.5px;color:#6b7280;margin-top:4px">
                         👤 {_esc(t.get('assignee','미정'))}
                       </div>
-                      {desc_part}
                     </div>
                     """, unsafe_allow_html=True)
 

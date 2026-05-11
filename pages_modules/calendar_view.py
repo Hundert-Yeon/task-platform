@@ -276,13 +276,7 @@ def render():
     today         = date.today()
     today_str_val = today.isoformat()
 
-    # ── query param 처리 (팝업 클릭 / 날짜 클릭) ────────────
-    cal_popup = st.query_params.get("cal_popup", None)
-    if cal_popup:
-        st.session_state.detail_task_id = cal_popup
-        st.query_params.clear()
-        st.stop()
-
+    # ── query param 처리 (날짜 클릭) ────────────────────────
     q_day = st.query_params.get("cal_day", None)
     if q_day:
         try:
@@ -437,7 +431,6 @@ def render():
                 is_soon = today <= due_d <= in3
                 ci      = cfg_units.get(ev.get("cell", ""), {})
                 cn      = ci.get("name", "")
-                cc      = "#d1d5db" if is_past else ci.get("color", "#9ca3af")
 
                 badge   = "⬜" if is_past else ("🔴" if is_ov else "🟡" if is_soon else "🔵")
                 title   = ev["title"].replace("[Task] ", "")
@@ -447,41 +440,46 @@ def render():
 
                 is_sel_task = ev["date"] == sel_ds
                 card_bg     = "#eff6ff" if is_sel_task else ("#fafafa" if is_past else "white")
-                strike      = "text-decoration:line-through;" if is_past else ""
                 fade        = "opacity:0.65;" if is_past else ""
+                b_color     = "#1d4ed8" if is_sel_task else l_color
+                bk          = f"calt{task_id.replace('-', '')}"
 
-                cell_badge = (
-                    f"<span style='font-size:10px;font-weight:700;padding:1px 6px;"
-                    f"border-radius:3px;background:{cc};color:white;margin-left:6px'>{cn}</span>"
-                ) if cn else ""
-
-                # 카드 hover + click 팝업 (window.location.search 방식)
-                safe_cls  = f"caltask{task_id.replace('-','')}"
-                popup_qs  = f"?cal_popup={task_id}"
-                b_color   = "#1d4ed8" if is_sel_task else l_color
                 hover_css = (
-                    f".{safe_cls}{{transition:border-color 0.15s,box-shadow 0.15s,filter 0.15s;}}"
-                    f".{safe_cls}:hover{{border-color:{b_color}!important;"
-                    f"box-shadow:0 0 0 2px {b_color}!important;"
-                    f"filter:brightness(0.96);cursor:pointer;}}"
+                    f".st-key-{bk} button:hover{{border-color:{b_color}!important;"
+                    f"box-shadow:0 0 0 2px {b_color}!important;filter:brightness(0.96)!important;}}"
                 ) if not is_past else ""
 
                 st.markdown(
-                    f"<style>{hover_css}</style>"
-                    f"<div class='{safe_cls}' "
-                    f"onclick=\"window.location.search='{popup_qs}'\" "
-                    f"style='background:{card_bg};"
-                    f"border:1.5px solid {l_color};border-left:3px solid {l_color};"
-                    f"border-radius:8px;padding:9px 12px;margin:4px 0;{fade}"
-                    f"{'border:2.5px solid #1d4ed8;' if is_sel_task else ''}'>"
-                    f"<div style='font-size:12px;font-weight:600;color:#1f2937;"
-                    f"line-height:1.5;word-break:keep-all;{strike}'>{badge} {title}</div>"
-                    f"<div style='font-size:10.5px;color:#6b7280;margin-top:4px;"
-                    f"display:flex;align-items:center'>"
-                    f"📅 {ev['date']}{cell_badge}"
-                    f"</div></div>",
+                    f"<style>"
+                    f".st-key-{bk} button{{"
+                    f"background:{card_bg}!important;"
+                    f"border:1.5px solid {l_color}!important;"
+                    f"border-left:3px solid {l_color}!important;"
+                    f"border-radius:8px!important;text-align:left!important;"
+                    f"padding:9px 12px!important;color:#1f2937!important;"
+                    f"width:100%!important;margin:3px 0!important;"
+                    f"font-size:12px!important;font-weight:600!important;"
+                    f"cursor:pointer!important;height:auto!important;"
+                    f"min-height:52px!important;white-space:normal!important;"
+                    f"line-height:1.5!important;"
+                    f"transition:border-color 0.15s,box-shadow 0.15s,filter 0.15s!important;"
+                    f"{fade}}}"
+                    f"{hover_css}"
+                    f"</style>",
                     unsafe_allow_html=True,
                 )
+
+                btn_label = f"{badge} {title}\n📅 {ev['date']}"
+                if cn:
+                    btn_label += f"  · {cn}"
+
+                if st.button(btn_label, key=bk, use_container_width=True):
+                    det_task = next(
+                        (t for t in st.session_state.tasks if t["id"] == task_id),
+                        None,
+                    )
+                    if det_task:
+                        _task_detail_popup(det_task)
 
         if upcoming:
             _task_rows(upcoming, False)
