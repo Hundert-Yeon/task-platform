@@ -118,6 +118,41 @@ def render():
     if filter_cell != "all":
         visible = [t for t in visible if t["cell"] == filter_cell]
 
+    # ── 카드 제목 버튼 스타일 ────────────────────────────────
+    st.markdown("""
+    <style>
+    [data-testid="stVerticalBlockBorderWrapper"]:has([data-cardtop])
+      + [data-testid="stVerticalBlockBorderWrapper"]
+      button[data-testid="stBaseButton-secondary"],
+    [data-testid="element-container"]:has([data-cardtop])
+      + [data-testid="element-container"]
+      button[data-testid="stBaseButton-secondary"] {
+        text-align: left !important;
+        background: white !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        color: #111827 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        padding: 5px 12px 7px !important;
+        min-height: unset !important;
+        line-height: 1.45 !important;
+        white-space: normal !important;
+        cursor: pointer !important;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"]:has([data-cardtop])
+      + [data-testid="stVerticalBlockBorderWrapper"]
+      button[data-testid="stBaseButton-secondary"]:hover,
+    [data-testid="element-container"]:has([data-cardtop])
+      + [data-testid="element-container"]
+      button[data-testid="stBaseButton-secondary"]:hover {
+        background: #eff6ff !important;
+        color: #1d4ed8 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # ── 칸반 보드 ────────────────────────────────────────────
     today = date.today()
     in3   = today + timedelta(days=3)
@@ -137,28 +172,42 @@ def render():
                 due_d   = date.fromisoformat(t["due"]) if t.get("due") else None
                 is_ov   = due_d and due_d < today and t["status"] != "done"
                 is_soon = due_d and today <= due_d <= in3 and t["status"] != "done"
-                due_color   = "#dc2626" if is_ov else "#d97706" if is_soon else "#9ca3af"
-                pri_color   = PRIORITY_COLORS.get(t.get("pri","M"), "#9ca3af")
-                cell_color  = units.get(t["cell"], {}).get("color", "#999")
-                shared_border = ("border-left:3px solid #7c3aed;" if t.get("shared_branch")
-                                 else ("border-left:3px solid #059669;" if t.get("shared") else ""))
-                shared_ico  = " 🏢" if t.get("shared_branch") else (" 🌐" if t.get("shared") else "")
+                due_color  = "#dc2626" if is_ov else "#d97706" if is_soon else "#9ca3af"
+                pri_color  = PRIORITY_COLORS.get(t.get("pri","M"), "#9ca3af")
+                cell_color = units.get(t["cell"], {}).get("color", "#999")
+                shared_ico = " 🏢" if t.get("shared_branch") else (" 🌐" if t.get("shared") else "")
 
                 with st.container():
+                    shared_bl = ("#7c3aed" if t.get("shared_branch")
+                                 else ("#059669" if t.get("shared") else "transparent"))
+
+                    # 카드 상단: 우선순위 뱃지 + 공유 아이콘
                     st.markdown(f"""
-                    <div style="background:white;border-radius:8px;padding:11px 12px;
-                                margin:5px 0;box-shadow:0 1px 4px rgba(0,0,0,0.07);
-                                border-top:2px solid {pri_color};{shared_border}">
-                      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px">
+                    <div data-cardtop="{t['id']}" style="background:white;
+                                border-radius:8px 8px 0 0;padding:9px 12px 5px;margin-top:6px;
+                                border-top:2px solid {pri_color};border-left:3px solid {shared_bl};
+                                border-right:1px solid #e5e7eb">
+                      <div style="display:flex;justify-content:space-between;align-items:center">
                         <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;
                                      background:{pri_color}22;color:{pri_color}">
                           {PRIORITY_LABELS.get(t.get('pri','M'),'보통')}
                         </span>
-                        <span style="font-size:10px;color:#6b7280">{shared_ico}</span>
+                        <span style="font-size:10px;color:#9ca3af">{shared_ico}</span>
                       </div>
-                      <div style="font-size:13px;font-weight:600;color:#111827;line-height:1.4;margin-bottom:7px">
-                        {t['title']}
-                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # 제목 클릭 → 상세보기
+                    if st.button(t['title'], key=f"det_{t['id']}", use_container_width=True):
+                        st.session_state.detail_task_id = t["id"]
+                        st.rerun()
+
+                    # 카드 하단: 셀 뱃지, 마감일, 담당자
+                    st.markdown(f"""
+                    <div style="background:white;padding:4px 12px 10px;
+                                border-left:3px solid {shared_bl};border-right:1px solid #e5e7eb;
+                                border-bottom:1px solid #e5e7eb;border-radius:0 0 8px 8px;
+                                box-shadow:0 2px 5px rgba(0,0,0,0.06)">
                       <div style="display:flex;align-items:center;gap:5px">
                         <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;
                                      background:{cell_color};color:white">
@@ -168,28 +217,25 @@ def render():
                           ~{t.get('due','')}
                         </span>
                       </div>
-                      <div style="font-size:10.5px;color:#6b7280;margin-top:5px">👤 {t.get('assignee','미정')}</div>
+                      <div style="font-size:10.5px;color:#6b7280;margin-top:4px">👤 {t.get('assignee','미정')}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # 상세/수정 (1행) · 상태변경/삭제 (2행)
-                    br1c1, br1c2 = st.columns(2)
-                    with br1c1:
-                        if st.button("상세", key=f"det_{t['id']}", use_container_width=True):
-                            st.session_state.detail_task_id = t["id"]
-                            st.rerun()
-                    with br1c2:
+                    # 액션 버튼 3개 — 한 줄
+                    bc1, bc2, bc3 = st.columns(3)
+                    with bc1:
                         if st.button("수정", key=f"edit_{t['id']}", use_container_width=True):
                             st.session_state.edit_task_id    = t["id"]
                             st.session_state.show_task_modal = True
-                    br2c1, br2c2 = st.columns(2)
-                    with br2c1:
-                        new_st = _next_status(t["status"])
-                        if new_st and st.button(f"→{new_st}", key=f"mv_{t['id']}", use_container_width=True):
-                            t["status"] = new_st
+                    with bc2:
+                        nst_label, nst_key = _next_status(t["status"])
+                        btn_lbl = f"→{nst_label}" if nst_label else "─"
+                        if st.button(btn_lbl, key=f"mv_{t['id']}", use_container_width=True,
+                                     disabled=not nst_key):
+                            t["status"] = nst_key
                             sync_tasks_to_calendar()
                             st.rerun()
-                    with br2c2:
+                    with bc3:
                         if st.button("삭제", key=f"del_{t['id']}", use_container_width=True):
                             st.session_state.tasks = [x for x in st.session_state.tasks if x["id"] != t["id"]]
                             sync_tasks_to_calendar()
@@ -249,13 +295,14 @@ def render():
         st.session_state.show_task_modal = False
 
 
-def _next_status(current: str) -> str | None:
-    order = ["todo", "inprog", "done"]
-    if current in order and order.index(current) < len(order) - 1:
-        nxt = order[order.index(current) + 1]
-        labels = {"todo":"대기","inprog":"진행","done":"완료"}
-        return labels[nxt]
-    return None
+def _next_status(current: str) -> tuple[str, str] | tuple[None, None]:
+    transitions = {
+        "todo":  ("진행", "inprog"),
+        "inprog": ("완료", "done"),
+        "hold":  ("진행", "inprog"),
+    }
+    pair = transitions.get(current)
+    return pair if pair else (None, None)
 
 
 @st.dialog("업무 추가 / 수정", width="large")
