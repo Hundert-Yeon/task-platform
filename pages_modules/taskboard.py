@@ -160,6 +160,7 @@ def render():
                     shared_bl = ("#7c3aed" if t.get("shared_branch")
                                  else ("#059669" if t.get("shared") else "#e5e7eb"))
                     cell_name = units.get(t["cell"], {}).get("name", t["cell"])
+                    _uid      = t['id']
                     desc_str  = t.get("desc", "").strip()
                     desc_part = (
                         f"<div style='font-size:10px;color:#9ca3af;margin-top:4px;"
@@ -167,30 +168,16 @@ def render():
                         f"-webkit-box-orient:vertical'>{_esc(desc_str)}</div>"
                         if desc_str else ""
                     )
-                    _uid = t['id']
-                    # onclick: 이 div의 stElementContainer 다음 형제에서 hidden 버튼 클릭
-                    _js = (
-                        "var el=this,p=el.parentElement;"
-                        "while(p&&p.getAttribute('data-testid')!=='stVerticalBlock')"
-                        "{el=p;p=p.parentElement;}"
-                        "var n=el.nextElementSibling;"
-                        "if(n){var b=n.querySelector('button');if(b)b.click();}"
-                    )
 
-                    # ── 카드 (ONE box) + hidden popup 트리거 ──────
+                    # ── 카드 (ONE 박스: 제목·담당자·메타 통합) ────
                     st.markdown(f"""
-                    <span data-cid="{_uid}" style="display:none"></span>
-                    <style>
-                    [data-testid="stVerticalBlock"]:has([data-cid="{_uid}"])
-                      > *:has([data-cid="{_uid}"]) + * {{
-                        display: none !important;
-                    }}
-                    </style>
-                    <div onclick="{_js}" style="cursor:pointer;background:white;
-                         border-radius:8px;border-top:2px solid {pri_color};
-                         border-left:3px solid {shared_bl};border-right:1px solid #e5e7eb;
-                         border-bottom:1px solid #e5e7eb;padding:9px 12px 10px;
-                         margin-top:6px;box-shadow:0 2px 5px rgba(0,0,0,0.06)">
+                    <div style="background:white;border-radius:8px;
+                         border-top:2px solid {pri_color};
+                         border-left:3px solid {shared_bl};
+                         border-right:1px solid #e5e7eb;
+                         border-bottom:1px solid #e5e7eb;
+                         padding:9px 12px 10px;margin-top:6px;
+                         box-shadow:0 2px 5px rgba(0,0,0,0.06)">
                       <div style="display:flex;justify-content:space-between;
                                   align-items:center;margin-bottom:5px">
                         <span style="font-size:9px;font-weight:800;padding:2px 6px;
@@ -203,7 +190,7 @@ def render():
                                   line-height:1.45;word-break:keep-all;margin-bottom:6px">
                         {_esc(t['title'])}
                       </div>
-                      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+                      <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
                         <span style="font-size:10px;font-weight:700;padding:2px 6px;
                                      border-radius:3px;background:{cell_color};color:white">
                           {_esc(cell_name)}
@@ -218,13 +205,12 @@ def render():
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # hidden 팝업 트리거 버튼 (CSS로 숨김)
-                    if st.button("​", key=f"det_{_uid}", use_container_width=True):
-                        st.session_state.detail_task_id = _uid
-                        st.rerun()
-
-                    # ── 액션 버튼 3개 — 한 줄 ────────────────────
-                    bc1, bc2, bc3 = st.columns(3)
+                    # ── 액션 버튼 4개 — 한 줄 ────────────────────
+                    bc0, bc1, bc2, bc3 = st.columns(4)
+                    with bc0:
+                        if st.button("📋 상세", key=f"det_{_uid}", use_container_width=True):
+                            st.session_state.detail_task_id = _uid
+                            st.rerun()
                     with bc1:
                         if st.button("✏️ 수정", key=f"edit_{_uid}", use_container_width=True):
                             st.session_state.edit_task_id    = _uid
@@ -269,7 +255,7 @@ def render():
                         if _rows:
                             st.markdown(f"""
                             <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);
-                                        border-radius:8px;padding:10px 12px;margin:3px 0 6px">
+                                        border-radius:8px;padding:10px 12px;margin:3px 0 8px">
                               <div style="font-size:9px;letter-spacing:2px;font-weight:700;
                                           color:rgba(255,255,255,0.45);margin-bottom:6px">✦ AI 조언</div>
                               {_rows}

@@ -276,7 +276,13 @@ def render():
     today         = date.today()
     today_str_val = today.isoformat()
 
-    # ── query param 처리 (날짜 클릭) ─────────────────────────
+    # ── query param 처리 (팝업 클릭 / 날짜 클릭) ────────────
+    cal_popup = st.query_params.get("cal_popup", None)
+    if cal_popup:
+        st.session_state.detail_task_id = cal_popup
+        st.query_params.clear()
+        st.stop()
+
     q_day = st.query_params.get("cal_day", None)
     if q_day:
         try:
@@ -422,13 +428,6 @@ def render():
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
         def _task_rows(ev_list, is_past: bool = False):
-            _js = (
-                "var el=this,p=el.parentElement;"
-                "while(p&&p.getAttribute('data-testid')!=='stVerticalBlock')"
-                "{el=p;p=p.parentElement;}"
-                "var n=el.nextElementSibling;"
-                "if(n){var b=n.querySelector('button');if(b)b.click();}"
-            )
             for ev in ev_list:
                 task_id = ev.get("taskId")
                 if not task_id:
@@ -447,7 +446,6 @@ def render():
                 )
 
                 is_sel_task = ev["date"] == sel_ds
-                card_border = "2.5px solid #1d4ed8" if is_sel_task else "1.5px solid #e5e7eb"
                 card_bg     = "#eff6ff" if is_sel_task else ("#fafafa" if is_past else "white")
                 strike      = "text-decoration:line-through;" if is_past else ""
                 fade        = "opacity:0.65;" if is_past else ""
@@ -457,17 +455,25 @@ def render():
                     f"border-radius:3px;background:{cc};color:white;margin-left:6px'>{cn}</span>"
                 ) if cn else ""
 
-                # hidden 트리거 CSS: 카드 다음 형제 element-container 숨김
-                safe_cid = f"cc{task_id.replace('-','')}"
+                # 카드 hover + click 팝업 (window.location.search 방식)
+                safe_cls  = f"caltask{task_id.replace('-','')}"
+                popup_qs  = f"?cal_popup={task_id}"
+                b_color   = "#1d4ed8" if is_sel_task else l_color
+                hover_css = (
+                    f".{safe_cls}{{transition:border-color 0.15s,box-shadow 0.15s,filter 0.15s;}}"
+                    f".{safe_cls}:hover{{border-color:{b_color}!important;"
+                    f"box-shadow:0 0 0 2px {b_color}!important;"
+                    f"filter:brightness(0.96);cursor:pointer;}}"
+                ) if not is_past else ""
+
                 st.markdown(
-                    f"<span data-cid='{safe_cid}' style='display:none'></span>"
-                    f"<style>"
-                    f"[data-testid='stVerticalBlock']:has([data-cid='{safe_cid}'])"
-                    f" > *:has([data-cid='{safe_cid}']) + * {{display:none!important;}}"
-                    f"</style>"
-                    f"<div onclick=\"{_js}\" style='cursor:pointer;background:{card_bg};"
-                    f"border:{card_border};border-left:3px solid {l_color};"
-                    f"border-radius:8px;padding:9px 12px;margin:4px 0;{fade}'>"
+                    f"<style>{hover_css}</style>"
+                    f"<div class='{safe_cls}' "
+                    f"onclick=\"window.location.search='{popup_qs}'\" "
+                    f"style='background:{card_bg};"
+                    f"border:1.5px solid {l_color};border-left:3px solid {l_color};"
+                    f"border-radius:8px;padding:9px 12px;margin:4px 0;{fade}"
+                    f"{'border:2.5px solid #1d4ed8;' if is_sel_task else ''}'>"
                     f"<div style='font-size:12px;font-weight:600;color:#1f2937;"
                     f"line-height:1.5;word-break:keep-all;{strike}'>{badge} {title}</div>"
                     f"<div style='font-size:10.5px;color:#6b7280;margin-top:4px;"
@@ -476,10 +482,6 @@ def render():
                     f"</div></div>",
                     unsafe_allow_html=True,
                 )
-                # hidden 팝업 트리거 버튼 (CSS로 숨겨짐)
-                if st.button("​", key=f"cal_det_{task_id}", use_container_width=True):
-                    st.session_state.detail_task_id = task_id
-                    st.rerun()
 
         if upcoming:
             _task_rows(upcoming, False)
