@@ -118,6 +118,20 @@ def render():
     if filter_cell != "all":
         visible = [t for t in visible if t["cell"] == filter_cell]
 
+    # ── AI 조언 사전 생성 (캐시 없는 Task만) ─────────────────
+    _need = [t for t in visible if not st.session_state.get(f"task_advice_{t['id']}")]
+    if _need:
+        from utils.ai_helper import get_ai_task_advice, get_client
+        if get_client():
+            with st.spinner(f"AI 조언 생성 중... ({len(_need)}건)"):
+                for _t in _need:
+                    _k = f"task_advice_{_t['id']}"
+                    if not st.session_state.get(_k):
+                        try:
+                            st.session_state[_k] = get_ai_task_advice(_t)
+                        except Exception:
+                            pass
+
     # ── 칸반 보드 ────────────────────────────────────────────
     today = date.today()
     in3   = today + timedelta(days=3)
@@ -244,12 +258,6 @@ def render():
                         if st.button("↺ 재생성", key=f"regen_adv_{t['id']}", use_container_width=True):
                             from utils.ai_helper import get_ai_task_advice
                             with st.spinner("AI 재생성 중..."):
-                                st.session_state[_adv_key] = get_ai_task_advice(t)
-                            st.rerun()
-                    else:
-                        if st.button("✦ AI 조언", key=f"adv_btn_{t['id']}", use_container_width=True):
-                            from utils.ai_helper import get_ai_task_advice
-                            with st.spinner("AI 분석 중..."):
                                 st.session_state[_adv_key] = get_ai_task_advice(t)
                             st.rerun()
 
