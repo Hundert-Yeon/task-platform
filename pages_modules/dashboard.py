@@ -175,31 +175,46 @@ def _render_kanban(tasks: list, units: dict):
                               else ("border-left:3px solid #059669;" if t.get("shared") else ""))
                 assignee   = t.get("assignee", "미정") or "미정"
 
+                _bk = f"dashcard{t['id']}"
+                _pri_dot = {"H": "🔴", "M": "🟡", "L": "🟢"}.get(pri, "🟡")
+                _shared_bl_color = (
+                    "#7c3aed" if t.get("shared_branch")
+                    else ("#059669" if t.get("shared") else "#e5e7eb")
+                )
+                _sh_ico = (
+                    " 🏢" if t.get("shared_branch") else (" 🌐" if t.get("shared") else "")
+                )
+
                 st.markdown(
-                    f"<div style='background:white;border-radius:8px;padding:10px 12px;"
-                    f"margin:5px 0;box-shadow:0 1px 4px rgba(0,0,0,0.07);"
-                    f"border-top:2px solid {pri_color};{shared_bl}'>"
-                    f"<div style='display:flex;align-items:center;justify-content:space-between;"
-                    f"margin-bottom:5px'>"
-                    f"<span style='font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;"
-                    f"background:{pri_color}22;color:{pri_color}'>"
-                    f"{PRIORITY_LABELS.get(pri,'보통')}</span>"
-                    f"<span style='font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;"
-                    f"background:{cell_bg};color:white'>{_esc(cell_nm)}</span></div>"
-                    f"<div style='font-size:12.5px;font-weight:600;color:#111827;"
-                    f"line-height:1.4;margin-bottom:6px'>{_esc(t.get('title',''))}</div>"
-                    f"<div style='display:flex;align-items:center;justify-content:space-between'>"
-                    f"<span style='font-size:10px;color:{due_color};font-family:monospace'>"
-                    f"~{t.get('due','')}</span>"
-                    f"<span style='font-size:10.5px;color:#6b7280'>👤 {_esc(assignee)}</span>"
-                    f"</div></div>",
+                    f"<style>"
+                    f".st-key-{_bk} button{{"
+                    f"background:white!important;"
+                    f"border-top:2px solid {pri_color}!important;"
+                    f"border-left:3px solid {_shared_bl_color}!important;"
+                    f"border-right:1px solid #e5e7eb!important;"
+                    f"border-bottom:1px solid #e5e7eb!important;"
+                    f"border-radius:8px!important;text-align:left!important;"
+                    f"padding:9px 12px 10px!important;width:100%!important;"
+                    f"margin:5px 0!important;box-shadow:0 1px 4px rgba(0,0,0,0.07)!important;"
+                    f"cursor:pointer!important;height:auto!important;"
+                    f"white-space:pre-wrap!important;line-height:1.75!important;"
+                    f"font-size:12.5px!important;font-weight:600!important;"
+                    f"color:#111827!important;word-break:keep-all!important;"
+                    f"transition:box-shadow 0.15s,transform 0.15s!important;}}"
+                    f".st-key-{_bk} button:hover{{"
+                    f"box-shadow:0 4px 14px rgba(0,0,0,0.13)!important;"
+                    f"transform:translateY(-1px)!important;}}"
+                    f"</style>",
                     unsafe_allow_html=True,
                 )
-                if st.button(
-                    "📋 상세보기",
-                    key=f"dash_det_{t['id']}",
-                    use_container_width=True,
-                ):
+
+                _btn_lbl = (
+                    f"{_pri_dot} {PRIORITY_LABELS.get(pri,'보통')}  ·  {cell_nm}{_sh_ico}\n"
+                    f"{t.get('title', '')}\n"
+                    f"마감 ~{t.get('due', '')}  ·  👤 {assignee}"
+                )
+
+                if st.button(_btn_lbl, key=_bk, use_container_width=True):
                     st.session_state.detail_task_id = t["id"]
                     st.rerun()
 
