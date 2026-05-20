@@ -242,6 +242,55 @@ def get_ai_task_advice(task: dict) -> list[dict]:
         return [{"icon": "⚠️", "text": f"AI 조언 오류: {str(e)[:60]}", "level": "urgent"}]
 
 
+def get_ai_task_advice_detail(task: dict) -> dict:
+    """특정 Task에 대한 상세 AI 조언 — summary + 4 items 형식 (팝업용)"""
+    if not _get_api_key():
+        return {
+            "summary": "AI 기능을 사용하려면 GEMINI_API_KEY를 설정하세요.",
+            "items": [{"icon": "🔑", "text": "어드민 > AI API 키 설정에서 입력하세요.", "level": "normal"}],
+        }
+
+    cfg       = st.session_state.get("cfg", {})
+    units     = cfg.get("units", {})
+    cell_name = units.get(task.get("cell", ""), {}).get("name", task.get("cell", ""))
+    ctx       = build_team_context()
+    status_labels = {"todo": "대기", "inprog": "진행중", "done": "완료", "hold": "보류"}
+    pri_labels    = {"H": "높음", "M": "보통", "L": "낮음"}
+
+    prompt = f"""당신은 롯데백화점 인천점 AI 어드바이저입니다.
+다음 업무에 대한 상세한 AI 조언을 JSON 형식으로만 응답하세요 (설명 없이).
+
+=== 대상 업무 ===
+제목: {task.get('title', '')}
+담당 조직: {cell_name}
+담당자: {task.get('assignee', '미정')}
+마감일: {task.get('due', '미정')}
+우선순위: {pri_labels.get(task.get('pri', 'M'), '보통')}
+현재 상태: {status_labels.get(task.get('status', 'todo'), '대기')}
+세부 내용: {task.get('desc', '없음')}
+
+=== 팀 전체 현황 ===
+{ctx}
+
+규칙:
+- JSON 형식으로만 응답 (설명 없이)
+- 형식: {{"summary":"2~3문장 전반적 진단 및 핵심 조언","items":[{{"icon":"이모지","text":"구체적 실행 방안 2~3문장","level":"urgent|normal|ok"}}]}}
+- items는 정확히 4개
+- level: urgent(리스크·긴급), normal(실행 전략·트렌드), ok(긍정 인사이트)
+- icon: 💡(실행전략) 📈(트렌드) ⚠️(리스크) 🏆(참고사례) 🎯(목표KPI) 📊(데이터)
+- 유통업계·백화점 맥락 반영, 한국어로 구체적이고 실용적으로"""
+
+    try:
+        text = _call_gemini(prompt, max_tokens=900)
+        text = text.replace("```json", "").replace("```", "").strip()
+        return json.loads(text)
+    except Exception as e:
+        return {
+            "summary": f"AI 조언 생성 중 오류: {str(e)[:60]}",
+            "items": [{"icon": "⚠️", "text": "잠시 후 다시 시도해주세요.", "level": "urgent"}],
+        }
+
+
 def get_ai_memo_advice(memo_title: str, memo_content: str) -> str:
     """메모/회의록에 대한 AI 조언 생성 (사회·경제·문화 인사이트 포함)"""
     if not _get_api_key():

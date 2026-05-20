@@ -110,6 +110,20 @@ def render():
         st.session_state.detail_task_id = None
 
     visible = [t for t in get_visible_tasks() if t["cell"] == view_cell]
+
+    # ── AI 조언 사전 생성 (캐시 없는 Task만) ────────────────
+    from utils.ai_helper import get_ai_task_advice, get_client
+    _need = [t for t in visible if not st.session_state.get(f"task_advice_{t['id']}")]
+    if _need and get_client():
+        with st.spinner(f"AI 조언 생성 중... ({len(_need)}건)"):
+            for _t in _need:
+                _k = f"task_advice_{_t['id']}"
+                if not st.session_state.get(_k):
+                    try:
+                        st.session_state[_k] = get_ai_task_advice(_t)
+                    except Exception:
+                        pass
+
     _render_kanban(visible, units)
 
     # ── 팝업 핸들러 ──────────────────────────────────────────
@@ -217,6 +231,36 @@ def _render_kanban(tasks: list, units: dict):
                 if st.button(_btn_lbl, key=_bk, use_container_width=True):
                     st.session_state.detail_task_id = t["id"]
                     st.rerun()
+
+                # ── AI 조언 (최대 2개) ────────────────────────
+                _adv = st.session_state.get(f"task_advice_{t['id']}")
+                if _adv and isinstance(_adv, list):
+                    _LVLC = {"urgent": "#fca5a5", "normal": "#93c5fd", "ok": "#6ee7b7"}
+                    _LVLL = {"urgent": "긴급", "normal": "확인", "ok": "양호"}
+                    _rows = ""
+                    for _it in _adv[:2]:
+                        _lv = _it.get("level", "normal")
+                        _rows += (
+                            f"<div style='background:rgba(255,255,255,0.07);border-radius:6px;"
+                            f"padding:5px 8px;margin:2px 0;display:flex;align-items:flex-start;"
+                            f"gap:6px;border:1px solid rgba(255,255,255,0.08)'>"
+                            f"<span style='font-size:11px;flex-shrink:0'>{_it.get('icon','📌')}</span>"
+                            f"<span style='font-size:10.5px;color:rgba(255,255,255,0.9);"
+                            f"flex:1;line-height:1.45'>{_esc(str(_it.get('text','')))}</span>"
+                            f"<span style='font-size:9px;font-weight:700;background:rgba(0,0,0,0.3);"
+                            f"color:{_LVLC.get(_lv,'#93c5fd')};padding:1px 4px;border-radius:3px;"
+                            f"flex-shrink:0'>{_LVLL.get(_lv,'확인')}</span>"
+                            f"</div>"
+                        )
+                    if _rows:
+                        st.markdown(
+                            f"<div style='background:linear-gradient(135deg,#0f172a,#1e3a5f);"
+                            f"border-radius:7px;padding:8px 10px;margin:2px 0 4px'>"
+                            f"<div style='font-size:9px;letter-spacing:1.5px;font-weight:700;"
+                            f"color:rgba(255,255,255,0.45);margin-bottom:4px'>✦ AI 조언</div>"
+                            f"{_rows}</div>",
+                            unsafe_allow_html=True,
+                        )
 
             if not col_tasks:
                 st.markdown(
