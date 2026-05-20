@@ -10,16 +10,6 @@ def login_screen():
     branch_cfg = st.session_state.get("branch_cfg", {})
     branch     = branch_cfg.get("branch_name", "인천점")
 
-    # query param으로 점장 로그인 토글
-    if st.query_params.get("sm_login"):
-        st.session_state.show_sm_login = True
-        st.query_params.clear()
-        st.rerun()
-    if st.query_params.get("sm_back"):
-        st.session_state.show_sm_login = False
-        st.query_params.clear()
-        st.rerun()
-
     _, col_c, _ = st.columns([1, 2, 1])
 
     with col_c:
@@ -40,18 +30,31 @@ def login_screen():
             # ── 일반 로그인 ─────────────────────────────────────
             _render_member_login(branch_cfg)
 
-            # 안내문 + 점장 텍스트 링크
+            # 안내문
             st.markdown("""
-            <div style="text-align:center;margin-top:14px;line-height:2">
-                <div style="font-size:11px;color:#9ca3af;">
+            <div style="text-align:center;margin-top:10px">
+                <div style="font-size:11px;color:#9ca3af;line-height:2">
                     본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
                 </div>
-                <a href="?sm_login=1" style="font-size:10px;color:#c4c9d1;
-                   font-weight:300;text-decoration:none;letter-spacing:0.2px">
-                    점장/부문장 로그인
-                </a>
             </div>
             """, unsafe_allow_html=True)
+
+            # 점장/부문장 로그인 — 버튼으로 처리 (새 탭 방지, 세션 유지)
+            st.markdown("""<style>
+            .st-key-goto_sm_login button {
+                background: none !important; border: none !important;
+                box-shadow: none !important; color: #c4c9d1 !important;
+                font-size: 10px !important; font-weight: 300 !important;
+                letter-spacing: 0.2px !important; padding: 2px 0 !important;
+                min-height: 0 !important; height: auto !important;
+                width: auto !important;
+            }
+            .st-key-goto_sm_login button:hover { color: #9ca3af !important; }
+            .st-key-goto_sm_login { text-align: center !important; }
+            </style>""", unsafe_allow_html=True)
+            if st.button("점장/부문장 로그인", key="goto_sm_login"):
+                st.session_state.show_sm_login = True
+                st.rerun()
 
         else:
             # ── 점장/부문장 로그인 ──────────────────────────────
@@ -178,9 +181,17 @@ def _render_store_manager_login(branch_cfg: dict):
         }
         st.rerun()
 
-    st.markdown("""
-    <div style="margin-top:10px">
-        <a href="?sm_back=1" style="font-size:10px;color:#c4c9d1;
-           font-weight:300;text-decoration:none">← 일반 로그인</a>
-    </div>
-    """, unsafe_allow_html=True)
+    # 일반 로그인으로 돌아가기 — 버튼으로 처리 (세션 유지)
+    st.markdown("""<style>
+    .st-key-goto_member_login button {
+        background: none !important; border: none !important;
+        box-shadow: none !important; color: #c4c9d1 !important;
+        font-size: 10px !important; font-weight: 300 !important;
+        padding: 2px 0 !important; min-height: 0 !important;
+        height: auto !important; width: auto !important;
+    }
+    .st-key-goto_member_login button:hover { color: #9ca3af !important; }
+    </style>""", unsafe_allow_html=True)
+    if st.button("← 일반 로그인", key="goto_member_login"):
+        st.session_state.show_sm_login = False
+        st.rerun()
