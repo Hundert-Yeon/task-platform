@@ -27,8 +27,9 @@ def _get_api_key() -> str:
     return key
 
 
-def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000) -> str:
-    """Gemini generateContent API를 requests로 직접 호출 (단일 turn)"""
+def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000, _retry: int = 0) -> str:
+    """Gemini generateContent API를 requests로 직접 호출 (단일 turn). 429 시 1회 재시도."""
+    import time as _time
     key = _get_api_key()
     if not key:
         raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
@@ -56,7 +57,13 @@ def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000) -> str:
         if resp.status_code in (400, 401, 403):
             raise Exception("API 키가 유효하지 않습니다. Gemini API 키를 다시 확인해주세요.")
         elif resp.status_code == 429:
-            raise Exception("Gemini 무료 플랜 요청 한도에 잠시 걸렸습니다. 1분 후 다시 시도해주세요.")
+            if _retry == 0:
+                _time.sleep(10)
+                return _call_gemini(prompt, system, max_tokens, _retry=1)
+            raise Exception(
+                "Gemini API 요청이 너무 빠르게 몰렸습니다. "
+                "페이지를 10~20초 후 새로고침하면 자동 복구됩니다."
+            )
         else:
             raise Exception(f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}")
 
