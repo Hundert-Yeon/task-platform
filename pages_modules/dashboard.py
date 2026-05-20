@@ -114,15 +114,19 @@ def render():
     # ── AI 조언 사전 생성 (캐시 없는 Task만) ────────────────
     from utils.ai_helper import get_ai_task_advice, get_client
     _need = [t for t in visible if not st.session_state.get(f"task_advice_{t['id']}")]
-    if _need and get_client():
-        with st.spinner(f"AI 조언 생성 중... ({len(_need)}건)"):
+    if _need:
+        _ctx = st.spinner(f"AI 조언 생성 중... ({len(_need)}건)") if get_client() else None
+        if _ctx:
+            with _ctx:
+                for _t in _need:
+                    _k = f"task_advice_{_t['id']}"
+                    if not st.session_state.get(_k):
+                        st.session_state[_k] = get_ai_task_advice(_t)
+        else:
             for _t in _need:
                 _k = f"task_advice_{_t['id']}"
                 if not st.session_state.get(_k):
-                    try:
-                        st.session_state[_k] = get_ai_task_advice(_t)
-                    except Exception:
-                        pass
+                    st.session_state[_k] = get_ai_task_advice(_t)
 
     _render_kanban(visible, units)
 

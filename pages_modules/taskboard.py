@@ -73,42 +73,44 @@ def _task_detail_popup(task: dict):
 
     # ── AI 심층 분석 ──────────────────────────────────────
     from utils.ai_helper import get_ai_task_advice_detail, get_client as _gc
-    if _gc():
-        _dk = f"task_advice_detail_{task['id']}"
-        if _dk not in st.session_state:
+    _dk = f"task_advice_detail_{task['id']}"
+    if _dk not in st.session_state:
+        if _gc():
             with st.spinner("AI 심층 분석 중..."):
                 st.session_state[_dk] = get_ai_task_advice_detail(task)
-        _det = st.session_state.get(_dk, {})
-        if _det:
-            _LVLC = {"urgent": "#fca5a5", "normal": "#93c5fd", "ok": "#6ee7b7"}
-            _LVLL = {"urgent": "긴급", "normal": "확인", "ok": "양호"}
-            _summary = _det.get("summary", "")
-            _items   = _det.get("items", [])
-            _rows = ""
-            for _it in _items:
-                _lv = _it.get("level", "normal")
-                _rows += (
-                    f"<div style='background:rgba(255,255,255,0.07);border-radius:6px;"
-                    f"padding:7px 10px;margin:4px 0;display:flex;align-items:flex-start;"
-                    f"gap:8px;border:1px solid rgba(255,255,255,0.08)'>"
-                    f"<span style='font-size:13px;flex-shrink:0'>{_it.get('icon','📌')}</span>"
-                    f"<span style='font-size:12px;color:rgba(255,255,255,0.9);"
-                    f"flex:1;line-height:1.5'>{_esc(str(_it.get('text','')))}</span>"
-                    f"<span style='font-size:10px;font-weight:700;background:rgba(0,0,0,0.3);"
-                    f"color:{_LVLC.get(_lv,'#93c5fd')};padding:2px 6px;border-radius:4px;"
-                    f"flex-shrink:0'>{_LVLL.get(_lv,'확인')}</span>"
-                    f"</div>"
-                )
-            st.markdown(
-                f"<div style='background:linear-gradient(135deg,#0f172a,#1e3a5f);"
-                f"border-radius:10px;padding:14px 16px;margin-top:14px'>"
-                f"<div style='font-size:11px;letter-spacing:2px;font-weight:700;"
-                f"color:rgba(255,255,255,0.5);margin-bottom:8px'>✦ AI 심층 분석</div>"
-                f"{'<div style=\"font-size:12.5px;color:rgba(255,255,255,0.85);line-height:1.6;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:7px;padding:9px 12px\">' + _esc(_summary) + '</div>' if _summary else ''}"
-                f"{_rows}"
-                f"</div>",
-                unsafe_allow_html=True,
+        else:
+            st.session_state[_dk] = get_ai_task_advice_detail(task)
+    _det = st.session_state.get(_dk, {})
+    if _det:
+        _LVLC = {"urgent": "#fca5a5", "normal": "#93c5fd", "ok": "#6ee7b7"}
+        _LVLL = {"urgent": "긴급", "normal": "확인", "ok": "양호"}
+        _summary = _det.get("summary", "")
+        _items   = _det.get("items", [])
+        _rows = ""
+        for _it in _items:
+            _lv = _it.get("level", "normal")
+            _rows += (
+                f"<div style='background:rgba(255,255,255,0.07);border-radius:6px;"
+                f"padding:7px 10px;margin:4px 0;display:flex;align-items:flex-start;"
+                f"gap:8px;border:1px solid rgba(255,255,255,0.08)'>"
+                f"<span style='font-size:13px;flex-shrink:0'>{_it.get('icon','📌')}</span>"
+                f"<span style='font-size:12px;color:rgba(255,255,255,0.9);"
+                f"flex:1;line-height:1.5'>{_esc(str(_it.get('text','')))}</span>"
+                f"<span style='font-size:10px;font-weight:700;background:rgba(0,0,0,0.3);"
+                f"color:{_LVLC.get(_lv,'#93c5fd')};padding:2px 6px;border-radius:4px;"
+                f"flex-shrink:0'>{_LVLL.get(_lv,'확인')}</span>"
+                f"</div>"
             )
+        st.markdown(
+            f"<div style='background:linear-gradient(135deg,#0f172a,#1e3a5f);"
+            f"border-radius:10px;padding:14px 16px;margin-top:14px'>"
+            f"<div style='font-size:11px;letter-spacing:2px;font-weight:700;"
+            f"color:rgba(255,255,255,0.5);margin-bottom:8px'>✦ AI 심층 분석</div>"
+            f"{'<div style=\"font-size:12.5px;color:rgba(255,255,255,0.85);line-height:1.6;margin-bottom:10px;background:rgba(255,255,255,0.05);border-radius:7px;padding:9px 12px\">' + _esc(_summary) + '</div>' if _summary else ''}"
+            f"{_rows}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
     st.divider()
     c1, c2 = st.columns(2)
@@ -158,18 +160,21 @@ def render():
         visible = [t for t in visible if t["cell"] == filter_cell]
 
     # ── AI 조언 사전 생성 (캐시 없는 Task만) ─────────────────
+    from utils.ai_helper import get_ai_task_advice, get_client
     _need = [t for t in visible if not st.session_state.get(f"task_advice_{t['id']}")]
     if _need:
-        from utils.ai_helper import get_ai_task_advice, get_client
-        if get_client():
-            with st.spinner(f"AI 조언 생성 중... ({len(_need)}건)"):
+        _ctx = st.spinner(f"AI 조언 생성 중... ({len(_need)}건)") if get_client() else None
+        if _ctx:
+            with _ctx:
                 for _t in _need:
                     _k = f"task_advice_{_t['id']}"
                     if not st.session_state.get(_k):
-                        try:
-                            st.session_state[_k] = get_ai_task_advice(_t)
-                        except Exception:
-                            pass
+                        st.session_state[_k] = get_ai_task_advice(_t)
+        else:
+            for _t in _need:
+                _k = f"task_advice_{_t['id']}"
+                if not st.session_state.get(_k):
+                    st.session_state[_k] = get_ai_task_advice(_t)
 
     # ── 칸반 보드 ────────────────────────────────────────────
     today = date.today()
