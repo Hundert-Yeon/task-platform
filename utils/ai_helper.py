@@ -27,9 +27,26 @@ def _get_api_key() -> str:
     return key
 
 
+_CALL_MIN_INTERVAL = 4.5  # 초 — Gemini 무료 15 RPM 기준 (60/15 = 4s + 여유)
+
+
+def _throttle():
+    """연속 Gemini 호출 사이에 최소 _CALL_MIN_INTERVAL 초 간격을 보장."""
+    import time as _t
+    _key = "_gemini_last_call_ts"
+    _last = st.session_state.get(_key, 0.0)
+    _gap  = _t.time() - _last
+    if _last > 0 and _gap < _CALL_MIN_INTERVAL:
+        _t.sleep(_CALL_MIN_INTERVAL - _gap)
+    st.session_state[_key] = _t.time()
+
+
 def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000, _retry: int = 0) -> str:
-    """Gemini generateContent API를 requests로 직접 호출 (단일 turn). 429 시 1회 재시도."""
-    import time as _time
+    """Gemini generateContent API 호출. 자동 스로틀링 + 429 시 1회 재시도."""
+    import time as _t
+
+    _throttle()  # 이전 호출과 최소 간격 보장
+
     key = _get_api_key()
     if not key:
         raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
@@ -58,12 +75,9 @@ def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000, _retry: 
             raise Exception("API 키가 유효하지 않습니다. Gemini API 키를 다시 확인해주세요.")
         elif resp.status_code == 429:
             if _retry == 0:
-                _time.sleep(10)
+                _t.sleep(15)
                 return _call_gemini(prompt, system, max_tokens, _retry=1)
-            raise Exception(
-                "Gemini API 요청이 너무 빠르게 몰렸습니다. "
-                "페이지를 10~20초 후 새로고침하면 자동 복구됩니다."
-            )
+            raise Exception(f"Gemini 요청 한도 초과: {msg[:120] or '잠시 후 새로고침하세요.'}")
         else:
             raise Exception(f"API 오류 ({resp.status_code}): {msg[:100] or resp.reason}")
 
