@@ -135,17 +135,19 @@ def render():
     # ── 칸반 보드 ────────────────────────────────────────────
     today = date.today()
     in3   = today + timedelta(days=3)
-    cols  = st.columns(4)
+    cols  = st.columns(4, gap="small")
 
     for i, status in enumerate(STATUS_LIST):
         col_tasks = [t for t in visible if t["status"] == status["key"]]
         with cols[i]:
-            st.markdown(f"""
-            <div style="background:{status['color']};color:white;padding:8px 11px;
-                        border-radius:8px 8px 0 0;font-size:12.5px;font-weight:700">
-              {status['label']} &nbsp;<span style="opacity:.7">({len(col_tasks)})</span>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='background:{status['color']};color:white;padding:7px 11px;"
+                f"border-radius:8px 8px 0 0;font-size:12px;font-weight:700;"
+                f"margin-bottom:0'>"
+                f"{status['label']} "
+                f"<span style='opacity:.6;font-size:11px'>({len(col_tasks)})</span></div>",
+                unsafe_allow_html=True,
+            )
 
             for t in col_tasks:
                 due_d   = date.fromisoformat(t["due"]) if t.get("due") else None
@@ -166,7 +168,7 @@ def render():
                     _pri_dot  = {"H": "🔴", "M": "🟡", "L": "🟢"}.get(t.get("pri", "M"), "🟡")
                     _pri_lbl  = PRIORITY_LABELS.get(t.get("pri", "M"), "보통")
 
-                    # ── 카드 전체가 클릭 가능 (CSS 스타일 button) ──
+                    # ── 카드 전체가 클릭 가능 + 액션버튼 컴팩트 CSS ──
                     st.markdown(
                         f"<style>"
                         f".st-key-{_bk} button{{"
@@ -175,9 +177,8 @@ def render():
                         f"border-left:3px solid {shared_bl}!important;"
                         f"border-right:1px solid #e5e7eb!important;"
                         f"border-bottom:1px solid #e5e7eb!important;"
-                        f"border-radius:8px!important;"
-                        f"text-align:left!important;"
-                        f"padding:9px 12px 10px!important;"
+                        f"border-radius:8px 8px 4px 4px!important;"
+                        f"text-align:left!important;padding:9px 12px 10px!important;"
                         f"width:100%!important;margin-top:6px!important;"
                         f"box-shadow:0 2px 5px rgba(0,0,0,0.06)!important;"
                         f"cursor:pointer!important;height:auto!important;"
@@ -185,10 +186,22 @@ def render():
                         f"font-size:12.5px!important;font-weight:600!important;"
                         f"color:#111827!important;word-break:keep-all!important;"
                         f"transition:box-shadow 0.15s,transform 0.15s!important;}}"
-                        f".st-key-{_bk} button:hover{{"
-                        f"box-shadow:0 4px 14px rgba(0,0,0,0.13)!important;"
-                        f"transform:translateY(-1px)!important;"
-                        f"border-top-color:{pri_color}!important;}}"
+                        f".st-key-{_bk} button:hover{{box-shadow:0 4px 14px rgba(0,0,0,0.13)!important;"
+                        f"transform:translateY(-1px)!important;}}"
+                        f".st-key-{_bk}{{margin-bottom:0px!important;}}"
+                        f"div[data-testid='element-container']:has(>[data-testid='stHorizontalBlock'] .st-key-edit_{_uid})"
+                        f"{{margin-top:0px!important;padding-top:0!important;}}"
+                        f"div[data-testid='element-container']:has(.st-key-edit_{_uid}) [data-testid='stHorizontalBlock']"
+                        f"{{gap:3px!important;}}"
+                        f".st-key-edit_{_uid} button,.st-key-mv_{_uid} button,.st-key-del_{_uid} button{{"
+                        f"font-size:11px!important;padding:0 4px!important;"
+                        f"min-height:24px!important;height:24px!important;"
+                        f"color:#9ca3af!important;border-color:#f0f0f0!important;"
+                        f"background:#fafafa!important;border-radius:4px!important;"
+                        f"font-weight:500!important;transition:all 0.1s!important;}}"
+                        f".st-key-edit_{_uid} button:hover,.st-key-mv_{_uid} button:hover,.st-key-del_{_uid} button:hover{{"
+                        f"color:#374151!important;border-color:#d1d5db!important;"
+                        f"background:white!important;box-shadow:0 1px 3px rgba(0,0,0,0.08)!important;}}"
                         f"</style>",
                         unsafe_allow_html=True,
                     )
@@ -207,8 +220,8 @@ def render():
                         st.session_state.detail_task_id = _uid
                         st.rerun()
 
-                    # ── 액션 버튼 3개 ─────────────────────────────
-                    bc1, bc2, bc3 = st.columns(3)
+                    # ── 액션 버튼 3개 (컴팩트) ────────────────────
+                    bc1, bc2, bc3 = st.columns(3, gap="small")
                     with bc1:
                         if st.button("✏️ 수정", key=f"edit_{_uid}", use_container_width=True):
                             st.session_state.edit_task_id    = _uid
@@ -261,7 +274,19 @@ def render():
                             """, unsafe_allow_html=True)
 
             # 컬럼 하단 추가 버튼
-            if st.button(f"＋", key=f"add_col_{status['key']}", use_container_width=True):
+            st.markdown(
+                f"<style>.st-key-add_col_{status['key']} button{{"
+                f"color:#9ca3af!important;border-color:#e5e7eb!important;"
+                f"background:#fafafa!important;font-size:14px!important;"
+                f"min-height:28px!important;height:28px!important;"
+                f"border-style:dashed!important;border-radius:6px!important;"
+                f"padding:0!important;transition:all 0.1s!important;}}"
+                f".st-key-add_col_{status['key']} button:hover{{"
+                f"color:#6b7280!important;border-color:#9ca3af!important;"
+                f"background:white!important;}}</style>",
+                unsafe_allow_html=True,
+            )
+            if st.button("＋", key=f"add_col_{status['key']}", use_container_width=True):
                 st.session_state.show_task_modal = True
                 st.session_state.edit_task_id    = None
                 st.session_state.default_status  = status["key"]
