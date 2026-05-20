@@ -162,55 +162,53 @@ def render():
                     cell_name = units.get(t["cell"], {}).get("name", t["cell"])
                     _uid      = t['id']
                     desc_str  = t.get("desc", "").strip()
-                    desc_part = (
-                        f"<div style='font-size:10px;color:#9ca3af;margin-top:4px;"
-                        f"overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;"
-                        f"-webkit-box-orient:vertical'>{_esc(desc_str)}</div>"
-                        if desc_str else ""
+                    _bk       = f"card{_uid}"
+                    _pri_dot  = {"H": "🔴", "M": "🟡", "L": "🟢"}.get(t.get("pri", "M"), "🟡")
+                    _pri_lbl  = PRIORITY_LABELS.get(t.get("pri", "M"), "보통")
+
+                    # ── 카드 전체가 클릭 가능 (CSS 스타일 button) ──
+                    st.markdown(
+                        f"<style>"
+                        f".st-key-{_bk} button{{"
+                        f"background:white!important;"
+                        f"border-top:2px solid {pri_color}!important;"
+                        f"border-left:3px solid {shared_bl}!important;"
+                        f"border-right:1px solid #e5e7eb!important;"
+                        f"border-bottom:1px solid #e5e7eb!important;"
+                        f"border-radius:8px!important;"
+                        f"text-align:left!important;"
+                        f"padding:9px 12px 10px!important;"
+                        f"width:100%!important;margin-top:6px!important;"
+                        f"box-shadow:0 2px 5px rgba(0,0,0,0.06)!important;"
+                        f"cursor:pointer!important;height:auto!important;"
+                        f"white-space:pre-wrap!important;line-height:1.75!important;"
+                        f"font-size:12.5px!important;font-weight:600!important;"
+                        f"color:#111827!important;word-break:keep-all!important;"
+                        f"transition:box-shadow 0.15s,transform 0.15s!important;}}"
+                        f".st-key-{_bk} button:hover{{"
+                        f"box-shadow:0 4px 14px rgba(0,0,0,0.13)!important;"
+                        f"transform:translateY(-1px)!important;"
+                        f"border-top-color:{pri_color}!important;}}"
+                        f"</style>",
+                        unsafe_allow_html=True,
                     )
 
-                    # ── 카드 (ONE 박스: 제목·담당자·메타 통합) ────
-                    st.markdown(f"""
-                    <div style="background:white;border-radius:8px;
-                         border-top:2px solid {pri_color};
-                         border-left:3px solid {shared_bl};
-                         border-right:1px solid #e5e7eb;
-                         border-bottom:1px solid #e5e7eb;
-                         padding:9px 12px 10px;margin-top:6px;
-                         box-shadow:0 2px 5px rgba(0,0,0,0.06)">
-                      <div style="display:flex;justify-content:space-between;
-                                  align-items:center;margin-bottom:5px">
-                        <span style="font-size:9px;font-weight:800;padding:2px 6px;
-                                     border-radius:3px;background:{pri_color}22;color:{pri_color}">
-                          {PRIORITY_LABELS.get(t.get('pri','M'),'보통')}
-                        </span>
-                        <span style="font-size:10px;color:#9ca3af">{shared_ico}</span>
-                      </div>
-                      <div style="font-size:13px;font-weight:700;color:#111827;
-                                  line-height:1.45;word-break:keep-all;margin-bottom:6px">
-                        {_esc(t['title'])}
-                      </div>
-                      <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-                        <span style="font-size:10px;font-weight:700;padding:2px 6px;
-                                     border-radius:3px;background:{cell_color};color:white">
-                          {_esc(cell_name)}
-                        </span>
-                        <span style="font-size:10px;color:{due_color};margin-left:auto;
-                                     font-family:monospace">~{t.get('due','')}</span>
-                      </div>
-                      {desc_part}
-                      <div style="font-size:10.5px;color:#6b7280;margin-top:4px">
-                        👤 {_esc(t.get('assignee','미정'))}
-                      </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    _sh_txt  = (" " + shared_ico.strip()) if shared_ico.strip() else ""
+                    _btn_lbl = (
+                        f"{_pri_dot} {_pri_lbl}  ·  {cell_name}{_sh_txt}\n"
+                        f"{t['title']}\n"
+                        f"마감 ~{t.get('due','')}  ·  👤 {t.get('assignee','미정')}"
+                    )
+                    if desc_str:
+                        _prev = desc_str[:45] + ("..." if len(desc_str) > 45 else "")
+                        _btn_lbl += f"\n{_prev}"
 
-                    # ── 액션 버튼 4개 — 한 줄 ────────────────────
-                    bc0, bc1, bc2, bc3 = st.columns(4)
-                    with bc0:
-                        if st.button("📋 상세", key=f"det_{_uid}", use_container_width=True):
-                            st.session_state.detail_task_id = _uid
-                            st.rerun()
+                    if st.button(_btn_lbl, key=_bk, use_container_width=True):
+                        st.session_state.detail_task_id = _uid
+                        st.rerun()
+
+                    # ── 액션 버튼 3개 ─────────────────────────────
+                    bc1, bc2, bc3 = st.columns(3)
                     with bc1:
                         if st.button("✏️ 수정", key=f"edit_{_uid}", use_container_width=True):
                             st.session_state.edit_task_id    = _uid
