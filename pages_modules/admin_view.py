@@ -220,13 +220,22 @@ def render():
                     st.session_state.confirm_full_reset = True
                     st.warning("한번 더 누르면 Task·메모·파일·일정이 모두 삭제됩니다!")
 
-    # ── 팀 관리 (전체 너비) ──────────────────────────────────────
-    st.divider()
-    _render_team_management()
+    # ── 팀 관리 (영업기획팀장 전용) ─────────────────────────────
+    _is_sales_manager = (
+        st.session_state.get("current_team_id") == "sales_planning"
+        and st.session_state.user.get("cell") == "manager"
+    )
+    if _is_sales_manager:
+        st.divider()
+        _render_team_management()
 
 
 def _render_team_management():
-    """팀 생성 / 삭제 관리"""
+    """팀 생성 / 삭제 관리 — 영업기획팀장 전용"""
+    if not (st.session_state.get("current_team_id") == "sales_planning"
+            and st.session_state.user.get("cell") == "manager"):
+        return
+
     st.markdown("#### 🏗️ 팀 관리")
     st.caption("팀을 추가하거나 삭제합니다. 삭제 시 해당 팀의 모든 데이터가 제거됩니다.")
 
