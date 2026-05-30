@@ -1,5 +1,5 @@
 import streamlit as st
-from pages_modules import dashboard, taskboard, calendar_view, files_view, memo_view, admin_view, shared_feed
+from pages_modules import dashboard, taskboard, calendar_view, files_view, memo_view, admin_view, shared_feed, board_view
 from utils.state import init_state, switch_team, get_all_teams
 from utils.auth import login_screen
 
@@ -285,6 +285,7 @@ with st.sidebar:
         "📅 캘린더":      "calendar",
         "📁 파일 저장소": "files",
         "📝 메모장":      "memo",
+        "📌 익명 게시판": "board",
     }
 
     global_files = st.session_state.branch_cfg.get("global_files_enabled", True)
@@ -294,10 +295,14 @@ with st.sidebar:
         pages = {
             label: key
             for label, key in ALL_PAGES.items()
-            if menu_vis.get(key, True) and (key != "files" or global_files)
+            if (key != "files" or global_files) and (key != "board" or menu_vis.get("board", False))
         }
         if menu_vis.get("shared_feed", True):
             pages["🌐 전체 공유 피드"] = "shared_feed"
+        # 익명 게시판: 팀장은 항상 볼 수 있음 (설정 페이지 접근용)
+        if "📌 익명 게시판" not in pages:
+            pages["📌 익명 게시판"] = "board"
+        pages["💬 부문 건의함"] = "branch_board"
         # 어드민은 팀장만 (점장 제외)
         if user["cell"] == "manager":
             pages["⚙️ 어드민 설정"] = "admin"
@@ -307,6 +312,7 @@ with st.sidebar:
             for label, key in ALL_PAGES.items()
             if menu_vis.get(key, True) and (key != "files" or global_files)
         }
+        pages["💬 부문 건의함"] = "branch_board"
 
     # 현재 페이지가 숨겨진 경우 첫 번째 표시 메뉴로 이동
     if st.session_state.get("current_page") not in pages.values():
@@ -352,6 +358,10 @@ elif page == "memo":
     memo_view.render()
 elif page == "shared_feed":
     shared_feed.render()
+elif page == "board":
+    board_view.render()
+elif page == "branch_board":
+    board_view.render_branch_board()
 elif page == "admin":
     if st.session_state.user.get("cell") == "manager":
         admin_view.render()

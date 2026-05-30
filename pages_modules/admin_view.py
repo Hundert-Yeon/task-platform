@@ -40,6 +40,7 @@ def render():
         "files":       "📁 파일 저장소",
         "memo":        "📝 메모장",
         "shared_feed": "🌐 전체 공유 피드",
+        "board":       "📌 익명 게시판",
     }
     vis = cfg.get("menu_visibility", {k: True for k in MENU_ITEMS})
 
