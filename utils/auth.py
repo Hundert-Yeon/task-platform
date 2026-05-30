@@ -5,59 +5,146 @@ utils/auth.py
 import streamlit as st
 from utils.state import _load_team, sync_tasks_to_calendar
 
+_DARK_CSS = """
+<style>
+/* ── 로그인 전용 다크 배경 ── */
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"],
+.main .block-container {
+    background: #09090f !important;
+    background-color: #09090f !important;
+    padding-top: 0 !important;
+}
+section[data-testid="stMain"] > div { background: #09090f !important; }
+
+/* 입력 필드 */
+[data-testid="stTextInput"] input {
+    background: #13131f !important;
+    color: #e5e7eb !important;
+    border: 1px solid rgba(201,185,154,0.2) !important;
+    border-radius: 8px !important;
+}
+[data-testid="stTextInput"] input::placeholder { color: #4b5563 !important; }
+[data-testid="stTextInput"] input:focus {
+    border-color: rgba(201,185,154,0.55) !important;
+    box-shadow: 0 0 0 2px rgba(201,185,154,0.1) !important;
+}
+
+/* 셀렉트박스 */
+[data-testid="stSelectbox"] > div > div {
+    background: #13131f !important;
+    color: #e5e7eb !important;
+    border: 1px solid rgba(201,185,154,0.2) !important;
+    border-radius: 8px !important;
+}
+[data-testid="stSelectbox"] svg { color: #9ca3af !important; fill: #9ca3af !important; }
+
+/* 레이블 */
+[data-testid="stTextInput"] label p,
+[data-testid="stSelectbox"] label p {
+    color: #6b7280 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* 구분선 */
+hr { border-color: rgba(255,255,255,0.07) !important; }
+
+/* Primary 버튼 (입장하기) */
+button[data-testid="baseButton-primary"],
+[data-testid="stBaseButton-primary"] {
+    background: rgba(201,185,154,0.15) !important;
+    border: 1px solid rgba(201,185,154,0.4) !important;
+    color: #c9b99a !important;
+    letter-spacing: 1px !important;
+    font-weight: 600 !important;
+}
+button[data-testid="baseButton-primary"]:hover,
+[data-testid="stBaseButton-primary"]:hover {
+    background: rgba(201,185,154,0.25) !important;
+    border-color: rgba(201,185,154,0.7) !important;
+    color: #e5d9c3 !important;
+}
+
+/* 에러 */
+[data-testid="stAlert"][data-baseweb="notification"] {
+    background: rgba(220,38,38,0.12) !important;
+    border-color: rgba(220,38,38,0.3) !important;
+    color: #fca5a5 !important;
+}
+
+/* 링크 버튼 (점장/일반 전환) */
+.st-key-goto_sm_login button,
+.st-key-goto_member_login button {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #374151 !important;
+    font-size: 11px !important;
+    font-weight: 300 !important;
+    letter-spacing: 0.3px !important;
+    padding: 2px 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    width: auto !important;
+}
+.st-key-goto_sm_login button:hover,
+.st-key-goto_member_login button:hover { color: #6b7280 !important; }
+.st-key-goto_sm_login { text-align: center !important; }
+</style>
+"""
+
 
 def login_screen():
+    st.markdown(_DARK_CSS, unsafe_allow_html=True)
+
     branch_cfg = st.session_state.get("branch_cfg", {})
     branch     = branch_cfg.get("branch_name", "인천점")
 
-    _, col_c, _ = st.columns([1, 2, 1])
+    # 전체 화면 세로 중앙 정렬 패딩
+    st.markdown("<div style='padding-top:8vh'></div>", unsafe_allow_html=True)
+
+    _, col_c, _ = st.columns([1, 1.4, 1])
 
     with col_c:
         # ── 브랜딩 ──────────────────────────────────────────────
         st.markdown(f"""
-        <div style="text-align:center;padding:20px 0 10px">
-            <div style="font-size:28px;font-weight:900;letter-spacing:4px;color:#c9b99a">LOTTE</div>
-            <div style="font-size:13px;color:#8a7d6e;letter-spacing:3px">DEPARTMENT STORE</div>
-            <div style="font-size:22px;font-weight:700;color:#1a3461;letter-spacing:2px;margin-top:8px">{branch}</div>
+        <div style="text-align:center;padding:0 0 28px">
+            <div style="font-size:11px;color:#3d3d4a;letter-spacing:6px;
+                        font-weight:400;margin-bottom:14px">— WELCOME —</div>
+            <div style="font-size:30px;font-weight:900;letter-spacing:6px;
+                        color:#c9b99a;text-shadow:0 0 40px rgba(201,185,154,0.25)">LOTTE</div>
+            <div style="font-size:11px;color:#4a4a5a;letter-spacing:4px;
+                        font-weight:300;margin-top:4px">DEPARTMENT STORE</div>
+            <div style="font-size:18px;font-weight:600;color:#9ca3af;
+                        letter-spacing:3px;margin-top:14px">{branch}</div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.divider()
+        # 얇은 골드 구분선
+        st.markdown("""
+        <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,185,154,0.35),transparent);
+                    margin-bottom:28px"></div>
+        """, unsafe_allow_html=True)
 
         show_sm = st.session_state.get("show_sm_login", False)
 
         if not show_sm:
-            # ── 일반 로그인 ─────────────────────────────────────
             _render_member_login(branch_cfg)
 
-            # 안내문
             st.markdown("""
-            <div style="text-align:center;margin-top:10px">
-                <div style="font-size:11px;color:#9ca3af;line-height:2">
-                    본인 소속 업무만 기본 열람됩니다. 전체 공유 설정 시 팀 전체에 공개됩니다.
+            <div style="text-align:center;margin-top:14px">
+                <div style="font-size:11px;color:#2d2d3a;line-height:2">
+                    본인 소속 업무만 기본 열람됩니다.
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # 점장/부문장 로그인 — 버튼으로 처리 (새 탭 방지, 세션 유지)
-            st.markdown("""<style>
-            .st-key-goto_sm_login button {
-                background: none !important; border: none !important;
-                box-shadow: none !important; color: #c4c9d1 !important;
-                font-size: 10px !important; font-weight: 300 !important;
-                letter-spacing: 0.2px !important; padding: 2px 0 !important;
-                min-height: 0 !important; height: auto !important;
-                width: auto !important;
-            }
-            .st-key-goto_sm_login button:hover { color: #9ca3af !important; }
-            .st-key-goto_sm_login { text-align: center !important; }
-            </style>""", unsafe_allow_html=True)
-            if st.button("점장/부문장 로그인", key="goto_sm_login"):
+            if st.button("점장 / 부문장 로그인", key="goto_sm_login"):
                 st.session_state.show_sm_login = True
                 st.rerun()
-
         else:
-            # ── 점장/부문장 로그인 ──────────────────────────────
             _render_store_manager_login(branch_cfg)
 
 
@@ -75,7 +162,7 @@ def _render_member_login(branch_cfg: dict):
         options=list(team_options.keys()),
         format_func=lambda x: team_options[x],
         index=None,
-        placeholder="-- 팀을 선택하세요 --",
+        placeholder="팀을 선택하세요",
         key="login_team_sel",
     )
 
@@ -93,7 +180,7 @@ def _render_member_login(branch_cfg: dict):
         options=list(unit_options.keys()),
         format_func=lambda x: unit_options[x],
         index=None,
-        placeholder="-- 선택하세요 --",
+        placeholder="소속을 선택하세요",
         key="login_cell_sel",
     )
 
@@ -109,9 +196,9 @@ def _render_member_login(branch_cfg: dict):
             badge_text  = u_info.get("name", "")
         st.markdown(f"""
         <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;
-                    background:#f8fafc;border-radius:7px;border:1px solid #e5e7eb;
-                    margin-top:-6px;margin-bottom:4px">
-          <span style="font-size:13px;font-weight:600;color:#111827">{name_input.strip()}</span>
+                    background:rgba(255,255,255,0.04);border-radius:8px;
+                    border:1px solid rgba(201,185,154,0.15);margin-top:-6px;margin-bottom:4px">
+          <span style="font-size:13px;font-weight:600;color:#d1d5db">{name_input.strip()}</span>
           <span style="background:{badge_color};color:white;font-size:10px;
                        font-weight:700;padding:2px 9px;border-radius:4px">{badge_text}</span>
         </div>
@@ -151,7 +238,8 @@ def _render_member_login(branch_cfg: dict):
 def _render_store_manager_login(branch_cfg: dict):
     """점장/부문장 로그인 화면"""
     st.markdown("""
-    <div style="font-size:11px;color:#9ca3af;font-weight:300;margin-bottom:12px">
+    <div style="font-size:11px;color:#4a4a5a;letter-spacing:2px;
+                font-weight:300;margin-bottom:16px;text-align:center">
         점장 / 부문장
     </div>
     """, unsafe_allow_html=True)
@@ -181,17 +269,6 @@ def _render_store_manager_login(branch_cfg: dict):
         }
         st.rerun()
 
-    # 일반 로그인으로 돌아가기 — 버튼으로 처리 (세션 유지)
-    st.markdown("""<style>
-    .st-key-goto_member_login button {
-        background: none !important; border: none !important;
-        box-shadow: none !important; color: #c4c9d1 !important;
-        font-size: 10px !important; font-weight: 300 !important;
-        padding: 2px 0 !important; min-height: 0 !important;
-        height: auto !important; width: auto !important;
-    }
-    .st-key-goto_member_login button:hover { color: #9ca3af !important; }
-    </style>""", unsafe_allow_html=True)
     if st.button("← 일반 로그인", key="goto_member_login"):
         st.session_state.show_sm_login = False
         st.rerun()
