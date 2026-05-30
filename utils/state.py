@@ -31,7 +31,7 @@ DEFAULT_MENU_VISIBILITY = {
     "files":       True,
     "memo":        True,
     "shared_feed": True,
-    "board":       False,
+    "board":       True,
 }
 
 # ── 지점 전역 설정 ────────────────────────────────────────────────

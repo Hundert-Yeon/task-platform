@@ -285,7 +285,7 @@ with st.sidebar:
         "📅 캘린더":      "calendar",
         "📁 파일 저장소": "files",
         "📝 메모장":      "memo",
-        "📌 익명 게시판": "board",
+        "📌 팀 익명게시판": "board",
     }
 
     global_files = st.session_state.branch_cfg.get("global_files_enabled", True)
@@ -299,9 +299,9 @@ with st.sidebar:
         }
         if menu_vis.get("shared_feed", True):
             pages["🌐 전체 공유 피드"] = "shared_feed"
-        # 익명 게시판: 팀장은 항상 볼 수 있음 (설정 페이지 접근용)
-        if "📌 익명 게시판" not in pages:
-            pages["📌 익명 게시판"] = "board"
+        # 팀 익명게시판: 팀장은 항상 볼 수 있음 (설정 페이지 접근용)
+        if "📌 팀 익명게시판" not in pages:
+            pages["📌 팀 익명게시판"] = "board"
         pages["💬 부문 건의함"] = "branch_board"
         # 어드민은 팀장만 (점장 제외)
         if user["cell"] == "manager":

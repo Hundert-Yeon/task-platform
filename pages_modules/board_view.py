@@ -152,7 +152,7 @@ def render():
     def save_posts():
         st.session_state.teams_data[tid]["board_posts"] = posts
 
-    st.markdown(f"### 📌 {team_name} 익명 게시판")
+    st.markdown(f"### 📌 {team_name} 팀 익명게시판")
     st.caption("모든 작성자는 익명으로 표시됩니다. 서로를 존중하는 글을 써주세요.")
 
     my_emoji, my_name = _get_my_animal()
