@@ -24,6 +24,30 @@ DEFAULT_SUPPORT_UNITS = {
     "support_part": {"name": "지원파트", "emoji": "🛠️", "type": "파트", "color": "#7c3aed"},
 }
 
+# ── 남성스포츠팀 ──────────────────────────────────────────────────
+DEFAULT_MENS_SPORTS_UNITS = {
+    "sports_gear":  {"name": "스포츠용품", "emoji": "🏃", "type": "유닛", "color": "#0369a1"},
+    "golf":         {"name": "골프",       "emoji": "⛳", "type": "셀",  "color": "#166534"},
+    "outdoor":      {"name": "아웃도어",   "emoji": "🏕️", "type": "셀",  "color": "#9a3412"},
+    "mens_fashion": {"name": "남성패션",   "emoji": "👔", "type": "셀",  "color": "#1e1b4b"},
+}
+
+# ── 여성팀 ───────────────────────────────────────────────────────
+DEFAULT_WOMENS_UNITS = {
+    "womens_fashion": {"name": "여성패션", "emoji": "👗", "type": "유닛", "color": "#9d174d"},
+    "beauty":         {"name": "뷰티",     "emoji": "💄", "type": "셀",  "color": "#be123c"},
+    "accessories":    {"name": "잡화",     "emoji": "👜", "type": "셀",  "color": "#7e22ce"},
+    "lingerie":       {"name": "란제리",   "emoji": "🌸", "type": "셀",  "color": "#db2777"},
+}
+
+# ── 생활가전팀 ───────────────────────────────────────────────────
+DEFAULT_LIVING_UNITS = {
+    "appliances": {"name": "가전제품",     "emoji": "📺", "type": "유닛", "color": "#0f766e"},
+    "living":     {"name": "생활용품",     "emoji": "🏠", "type": "셀",  "color": "#047857"},
+    "kitchen":    {"name": "주방용품",     "emoji": "🍳", "type": "셀",  "color": "#b45309"},
+    "furniture":  {"name": "가구/인테리어","emoji": "🪑", "type": "셀",  "color": "#92400e"},
+}
+
 DEFAULT_MENU_VISIBILITY = {
     "dashboard":   True,
     "tasks":       True,
@@ -53,6 +77,24 @@ DEFAULT_TEAMS = {
         "team_name":       "지원팀",
         "manager_pw":      "0000",
         "units":           DEFAULT_SUPPORT_UNITS,
+        "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
+    },
+    "mens_sports": {
+        "team_name":       "남성스포츠팀",
+        "manager_pw":      "0000",
+        "units":           DEFAULT_MENS_SPORTS_UNITS,
+        "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
+    },
+    "womens": {
+        "team_name":       "여성팀",
+        "manager_pw":      "0000",
+        "units":           DEFAULT_WOMENS_UNITS,
+        "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
+    },
+    "living": {
+        "team_name":       "생활가전팀",
+        "manager_pw":      "0000",
+        "units":           DEFAULT_LIVING_UNITS,
         "menu_visibility": dict(DEFAULT_MENU_VISIBILITY),
     },
 }
@@ -408,6 +450,390 @@ def seed_branch_board_posts():
     ]
 
 
+def seed_tasks_mens_sports():
+    def t(title, cell, pri, assignee, due_offset, status, shared=False):
+        return {"id": new_id(), "title": title, "cell": cell, "pri": pri,
+                "assignee": assignee, "due": today_str(due_offset),
+                "status": status, "desc": "", "shared": shared, "shared_branch": False}
+    return [
+        # ── 스포츠용품 (20) ──────────────────────────────────────
+        t("나이키 여름 신상품 입고 검수",          "sports_gear", "H", "김태준",   2,  "inprog"),
+        t("여름 스포츠웨어 플로어 진열 교체",      "sports_gear", "M", "이정호",   8,  "todo"),
+        t("아디다스 특가 행사 상품 준비",          "sports_gear", "M", "박민수",   3,  "inprog"),
+        t("스포츠용품 6월 재고 조사",             "sports_gear", "M", "최승현",  -5,  "done"),
+        t("러닝화 여름 할인 행사 기획",            "sports_gear", "H", "오지은",  10,  "todo"),
+        t("나이키·아디다스 계약 갱신 협상",        "sports_gear", "H", "김태준",  15,  "inprog"),
+        t("수영용품 시즌 진열 기획",              "sports_gear", "M", "이정호",  -8,  "done"),
+        t("사이즈 불량 상품 반품 처리",           "sports_gear", "L", "박민수",  -3,  "done"),
+        t("스포츠 액세서리 신규 입점 검토",        "sports_gear", "M", "최승현",  20,  "todo"),
+        t("5월 스포츠용품 매출 보고",             "sports_gear", "H", "오지은", -10,  "done",  True),
+        t("VMD 여름 시즌 업데이트",              "sports_gear", "M", "김태준",   5,  "inprog"),
+        t("아동 스포츠 라인 입점 협의",           "sports_gear", "M", "이정호",  25,  "todo"),
+        t("피트니스 용품 카테고리 확장 기획",      "sports_gear", "L", "박민수",  35,  "todo"),
+        t("브랜드별 5월 판매율 분석",             "sports_gear", "M", "최승현", -12,  "done"),
+        t("시즌오프 재고 정리 할인 행사 기획",    "sports_gear", "H", "오지은",  12,  "todo"),
+        t("스포츠 체험 행사 기획서 작성",         "sports_gear", "M", "김태준",  18,  "todo"),
+        t("협력사 7월 미팅 일정 조율",            "sports_gear", "L", "이정호",   7,  "inprog"),
+        t("여름 스포츠 신상 디스플레이 교체",     "sports_gear", "M", "박민수",  -6,  "done"),
+        t("F/W 스포츠 상품 소싱 계획",           "sports_gear", "H", "최승현",  50,  "todo"),
+        t("스포츠용품 고객 피드백 분석",          "sports_gear", "L", "오지은", -20,  "done"),
+        # ── 골프 (20) ────────────────────────────────────────────
+        t("여름 골프웨어 신상 입고 검수",         "golf", "H", "정재원",   2,  "inprog"),
+        t("골프클럽 여름 할인 행사 기획",         "golf", "H", "한승호",  10,  "todo"),
+        t("골프용품 VMD 교체",                   "golf", "M", "신지훈",  -5,  "done"),
+        t("프리미엄 골프클럽 신규 입점 협의",     "golf", "H", "임태양",  14,  "inprog"),
+        t("골프 시뮬레이터 체험 행사 기획",       "golf", "M", "유승우",  20,  "todo"),
+        t("골프 액세서리 재고 조사",              "golf", "L", "정재원",  -8,  "done"),
+        t("5월 골프 매출 분석 보고",              "golf", "H", "한승호", -10,  "done",  True),
+        t("골프웨어 브랜드 계약 갱신",            "golf", "H", "신지훈",   8,  "inprog"),
+        t("여름 골프 투어 패키지 협업 기획",      "golf", "M", "임태양",  25,  "todo"),
+        t("골프클럽 피팅 서비스 기획",            "golf", "L", "유승우",  30,  "todo"),
+        t("F/W 골프웨어 소싱 출장 준비",          "golf", "H", "정재원",  45,  "todo"),
+        t("골프 코스 제휴 프로모션 기획",         "golf", "M", "한승호",  22,  "todo"),
+        t("골프 용품 불량 반품 처리",             "golf", "M", "신지훈",  -3,  "done"),
+        t("VIP 골프 고객 초청 행사 준비",         "golf", "H", "임태양",  12,  "inprog"),
+        t("골프 브랜드 광고 소재 업데이트",       "golf", "L", "유승우", -15,  "done"),
+        t("캐디백 신규 라인 소개 행사",           "golf", "M", "정재원",  18,  "todo"),
+        t("골프 회원권 제휴 검토",               "golf", "L", "한승호",  40,  "todo"),
+        t("여름 특가 골프클럽 세트 구성",         "golf", "M", "신지훈",   6,  "inprog"),
+        t("골프 레슨 프로그램 연계 기획",         "golf", "M", "임태양",  28,  "todo"),
+        t("골프 용품 월간 판매 보고서",           "golf", "M", "유승우",  -7,  "done"),
+        # ── 아웃도어 (20) ────────────────────────────────────────
+        t("여름 등산복 신상품 입고 검수",         "outdoor", "H", "강동훈",   3,  "inprog"),
+        t("캠핑용품 시즌 진열 기획",             "outdoor", "M", "박재민",   7,  "todo"),
+        t("아웃도어 브랜드 계약 갱신",           "outdoor", "H", "이선호",  12,  "inprog"),
+        t("등산 장비 재고 조사",                "outdoor", "M", "최민찬",  -5,  "done"),
+        t("캠핑 체험 행사 기획서 작성",          "outdoor", "H", "서준영",  15,  "todo"),
+        t("트레킹화 여름 특가 행사 기획",        "outdoor", "M", "강동훈",  10,  "todo"),
+        t("아웃도어 VMD 여름 업데이트",          "outdoor", "M", "박재민",  -7,  "done"),
+        t("신규 캠핑 브랜드 입점 협의",          "outdoor", "H", "이선호",  18,  "inprog"),
+        t("등산용품 5월 매출 분석",             "outdoor", "H", "최민찬", -12,  "done",  True),
+        t("F/W 아웃도어 소싱 계획",             "outdoor", "H", "서준영",  55,  "todo"),
+        t("캠핑 쿡웨어 신상 라인업 검토",        "outdoor", "M", "강동훈",  20,  "todo"),
+        t("아웃도어 SNS 사진 촬영 소재 기획",   "outdoor", "L", "박재민", -10,  "done"),
+        t("겨울 등산복 예약 판매 기획",          "outdoor", "M", "이선호",  45,  "todo"),
+        t("협력사 제품 불량 반품 처리",          "outdoor", "M", "최민찬",  -3,  "done"),
+        t("아웃도어 고객 피드백 집계",           "outdoor", "L", "서준영", -18,  "done"),
+        t("등산 클럽 제휴 이벤트 기획",          "outdoor", "M", "강동훈",  22,  "todo"),
+        t("텐트·침낭 여름 재고 정리",           "outdoor", "M", "박재민",   5,  "inprog"),
+        t("아웃도어 브랜드 VIP 행사 참여",       "outdoor", "H", "이선호",  14,  "todo"),
+        t("여름 수상 스포츠 용품 라인 검토",     "outdoor", "L", "최민찬",  30,  "todo"),
+        t("아웃도어 SNS 콘텐츠 제작 협업",      "outdoor", "M", "서준영",   8,  "inprog"),
+        # ── 남성패션 (20) ────────────────────────────────────────
+        t("여름 남성 수트 신상 입고",            "mens_fashion", "H", "윤성민",   2,  "inprog"),
+        t("캐주얼 라인 VMD 여름 교체",           "mens_fashion", "M", "조현우",   6,  "todo"),
+        t("남성 브랜드 계약 갱신 협상",          "mens_fashion", "H", "신재원",  14,  "inprog"),
+        t("남성 셔츠 여름 특가 행사 기획",       "mens_fashion", "H", "김도훈",   8,  "todo"),
+        t("5월 남성 의류 매출 분석",             "mens_fashion", "H", "이승준",  -8,  "done",  True),
+        t("신규 남성 편집숍 입점 협의",          "mens_fashion", "M", "윤성민",  20,  "todo"),
+        t("남성 정장 재고 현황 파악",            "mens_fashion", "M", "조현우",  -5,  "done"),
+        t("F/W 남성 코트 소싱 계획",             "mens_fashion", "H", "신재원",  50,  "todo"),
+        t("남성 패션 룩북 촬영 기획",            "mens_fashion", "M", "김도훈",  10,  "inprog"),
+        t("제휴 카드 남성 의류 할인 기획",       "mens_fashion", "M", "이승준", -15,  "done"),
+        t("남성 액세서리 진열 리뉴얼",           "mens_fashion", "L", "윤성민",  15,  "todo"),
+        t("F/W 트렌드 리포트 작성 (남성)",       "mens_fashion", "M", "조현우",  35,  "todo"),
+        t("브랜드 SNS 협업 기획",               "mens_fashion", "L", "신재원",  12,  "inprog"),
+        t("남성 수트 맞춤 서비스 기획",          "mens_fashion", "M", "김도훈",  25,  "todo"),
+        t("이월 상품 할인 행사 준비",            "mens_fashion", "H", "이승준", -20,  "done"),
+        t("MZ 타겟 남성 캐주얼 기획",            "mens_fashion", "H", "윤성민",  18,  "todo"),
+        t("남성 패션 매장 레이아웃 변경",        "mens_fashion", "M", "조현우",   9,  "inprog"),
+        t("여름 남성 컬렉션 런칭 이벤트",        "mens_fashion", "H", "신재원",  12,  "todo"),
+        t("남성 VIP 스타일링 행사 준비",         "mens_fashion", "M", "김도훈",  28,  "todo"),
+        t("남성 의류 반품 현황 정리",            "mens_fashion", "L", "이승준", -10,  "done"),
+    ]
+
+
+def seed_tasks_womens():
+    def t(title, cell, pri, assignee, due_offset, status, shared=False):
+        return {"id": new_id(), "title": title, "cell": cell, "pri": pri,
+                "assignee": assignee, "due": today_str(due_offset),
+                "status": status, "desc": "", "shared": shared, "shared_branch": False}
+    return [
+        # ── 여성패션 (20) ────────────────────────────────────────
+        t("여름 여성 드레스 신상 입고",          "womens_fashion", "H", "박지영",   2,  "inprog"),
+        t("여성 의류 플로어 VMD 교체",           "womens_fashion", "M", "이서연",   7,  "todo"),
+        t("여성 브랜드 계약 갱신 협상",          "womens_fashion", "H", "김혜진",  15,  "inprog"),
+        t("여름 특가 여성복 행사 기획",          "womens_fashion", "H", "최수민",  10,  "todo"),
+        t("5월 여성 의류 매출 분석",             "womens_fashion", "H", "정아름",  -8,  "done",  True),
+        t("신규 여성 편집숍 입점 협의",          "womens_fashion", "M", "박지영",  22,  "todo"),
+        t("여성 정장 재고 파악 및 정리",         "womens_fashion", "M", "이서연",  -5,  "done"),
+        t("F/W 여성 컬렉션 소싱 계획",           "womens_fashion", "H", "김혜진",  55,  "todo"),
+        t("여성 패션 룩북 촬영 기획",            "womens_fashion", "M", "최수민",  12,  "inprog"),
+        t("VIP 여성 스타일링 행사 준비",         "womens_fashion", "H", "정아름",  18,  "todo"),
+        t("여성 드레스 사이즈 피팅 이벤트",      "womens_fashion", "M", "박지영",  20,  "todo"),
+        t("MZ 세대 여성 패션 트렌드 분석",       "womens_fashion", "M", "이서연", -15,  "done"),
+        t("이월 상품 여름 할인 행사",            "womens_fashion", "H", "김혜진", -20,  "done"),
+        t("여성 패션 SNS 콘텐츠 기획",           "womens_fashion", "L", "최수민",   8,  "inprog"),
+        t("제휴 카드 여성 의류 혜택 기획",       "womens_fashion", "M", "정아름", -10,  "done"),
+        t("여름 신상 여성 원피스 PB 기획",       "womens_fashion", "H", "박지영",  30,  "todo"),
+        t("여성 캐주얼 라인 매장 재배치",        "womens_fashion", "M", "이서연",   6,  "inprog"),
+        t("여성 패션 행사 협력사 미팅",          "womens_fashion", "M", "김혜진",  14,  "todo"),
+        t("가을 여성 패딩 예약 판매 기획",       "womens_fashion", "H", "최수민",  45,  "todo"),
+        t("여성 의류 고객 반품 현황 보고",       "womens_fashion", "L", "정아름",  -7,  "done"),
+        # ── 뷰티 (20) ────────────────────────────────────────────
+        t("6월 뷰티 신상품 입고 검수",           "beauty", "H", "한소희",   2,  "inprog"),
+        t("여름 선케어 특별 기획전 준비",         "beauty", "H", "오지현",   7,  "todo"),
+        t("화장품 브랜드 계약 갱신",             "beauty", "H", "강예진",  12,  "inprog"),
+        t("뷰티 VMD 여름 시즌 교체",            "beauty", "M", "임수연",  -5,  "done"),
+        t("5월 뷰티 매출 분석 보고",            "beauty", "H", "신채원", -10,  "done",  True),
+        t("신규 K-뷰티 브랜드 입점 협의",       "beauty", "H", "한소희",  20,  "todo"),
+        t("뷰티 체험 팝업 이벤트 기획",         "beauty", "M", "오지현",  15,  "todo"),
+        t("쿠션 파운데이션 시즌 구성 기획",      "beauty", "M", "강예진",   5,  "inprog"),
+        t("향수 신제품 런칭 행사 준비",          "beauty", "H", "임수연",  14,  "todo"),
+        t("뷰티 클래스 프로그램 기획",           "beauty", "M", "신채원",  25,  "todo"),
+        t("화장품 테스터 위생 관리 점검",        "beauty", "L", "한소희",  -8,  "done"),
+        t("여름 방학 뷰티 체험 행사 기획",       "beauty", "M", "오지현",  18,  "todo"),
+        t("뷰티 구독 패키지 기획 검토",          "beauty", "L", "강예진",  35,  "todo"),
+        t("뷰티 인플루언서 협업 기획",           "beauty", "M", "임수연",  10,  "inprog"),
+        t("에스테틱 브랜드 신규 입점 검토",      "beauty", "M", "신채원",  28,  "todo"),
+        t("뷰티 패키지 선물 세트 구성",          "beauty", "H", "한소희", -20,  "done"),
+        t("피부 타입별 제품 추천 서비스 기획",   "beauty", "M", "오지현",  22,  "todo"),
+        t("뷰티 VIP 데이 행사 준비",             "beauty", "H", "강예진",   8,  "inprog"),
+        t("F/W 뷰티 트렌드 리포트 작성",         "beauty", "L", "임수연",  40,  "todo"),
+        t("뷰티 매장 재고 현황 점검",            "beauty", "M", "신채원",  -3,  "done"),
+        # ── 잡화 (20) ────────────────────────────────────────────
+        t("명품 핸드백 신규 입고 검수",          "accessories", "H", "이민지",   2,  "inprog"),
+        t("잡화 플로어 VMD 여름 교체",           "accessories", "M", "박수현",   6,  "todo"),
+        t("핸드백 브랜드 계약 갱신",             "accessories", "H", "정소영",  14,  "inprog"),
+        t("여름 선글라스·스트로햇 기획전",        "accessories", "H", "김나영",   9,  "todo"),
+        t("5월 잡화 매출 분석 보고",             "accessories", "H", "윤혜원",  -8,  "done",  True),
+        t("신규 액세서리 브랜드 입점 협의",      "accessories", "M", "이민지",  20,  "todo"),
+        t("명품관 핸드백 재고 현황 파악",        "accessories", "M", "박수현",  -5,  "done"),
+        t("여름 잡화 특가 기획전 준비",          "accessories", "H", "정소영",  12,  "todo"),
+        t("지갑·소품 신상 진열 기획",            "accessories", "M", "김나영",   4,  "inprog"),
+        t("F/W 핸드백 소싱 계획 수립",           "accessories", "H", "윤혜원",  50,  "todo"),
+        t("MZ 타겟 가성비 잡화 라인 검토",       "accessories", "M", "이민지",  22,  "todo"),
+        t("VIP 핸드백 케어 서비스 기획",         "accessories", "M", "박수현",  30,  "todo"),
+        t("잡화 브랜드 SNS 홍보 기획",           "accessories", "L", "정소영",  10,  "inprog"),
+        t("액세서리 사은품 세트 구성",           "accessories", "M", "김나영", -12,  "done"),
+        t("명품 시계 신규 입점 검토",            "accessories", "H", "윤혜원",  35,  "todo"),
+        t("여성 벨트 라인 재배치",              "accessories", "L", "이민지",  -7,  "done"),
+        t("해외 직구 경쟁 대응 전략 수립",       "accessories", "H", "박수현",  25,  "todo"),
+        t("잡화 반품 현황 월간 보고",            "accessories", "M", "정소영",  -3,  "done"),
+        t("쥬얼리 브랜드 행사 기획",             "accessories", "M", "김나영",   7,  "inprog"),
+        t("가방 수선 서비스 도입 검토",          "accessories", "L", "윤혜원",  40,  "todo"),
+        # ── 란제리 (20) ──────────────────────────────────────────
+        t("여름 란제리 신상품 입고",             "lingerie", "M", "최지은",   3,  "inprog"),
+        t("속옷 브랜드 계약 갱신",              "lingerie", "H", "서유리",  10,  "inprog"),
+        t("여름 수영복 기획전 준비",             "lingerie", "H", "조민아",   8,  "todo"),
+        t("란제리 VMD 여름 교체",               "lingerie", "M", "강지현",  -6,  "done"),
+        t("5월 란제리 매출 분석",               "lingerie", "M", "임예진", -10,  "done"),
+        t("수면 속옷 신규 라인 입점 검토",       "lingerie", "M", "최지은",  18,  "todo"),
+        t("체형 보정 속옷 기획 상품 구성",       "lingerie", "H", "서유리",  12,  "todo"),
+        t("여름 수영복 사이즈 재고 점검",        "lingerie", "M", "조민아",   2,  "inprog"),
+        t("란제리 브랜드 팝업 이벤트 기획",      "lingerie", "M", "강지현",  22,  "todo"),
+        t("속옷 고객 피팅 서비스 기획",          "lingerie", "L", "임예진",  28,  "todo"),
+        t("F/W 란제리 소싱 계획",               "lingerie", "H", "최지은",  50,  "todo"),
+        t("반품 불량 상품 처리",                "lingerie", "L", "서유리",  -4,  "done"),
+        t("여름 수영복 특가 행사 기획",          "lingerie", "H", "조민아",  10,  "todo"),
+        t("란제리 패키지 선물 세트 구성",        "lingerie", "M", "강지현",   7,  "inprog"),
+        t("제휴 카드 속옷 할인 기획",            "lingerie", "M", "임예진", -15,  "done"),
+        t("신규 수면 속옷 브랜드 협의",          "lingerie", "M", "최지은",  25,  "todo"),
+        t("비키니·래시가드 신상 진열",          "lingerie", "M", "서유리",  -8,  "done"),
+        t("속옷 VMD 컨셉 재정비",               "lingerie", "L", "조민아",  20,  "todo"),
+        t("여름 시즌 재고 정리 할인",            "lingerie", "H", "강지현",   5,  "inprog"),
+        t("란제리 트렌드 분석 리포트",           "lingerie", "L", "임예진", -22,  "done"),
+    ]
+
+
+def seed_tasks_living():
+    def t(title, cell, pri, assignee, due_offset, status, shared=False):
+        return {"id": new_id(), "title": title, "cell": cell, "pri": pri,
+                "assignee": assignee, "due": today_str(due_offset),
+                "status": status, "desc": "", "shared": shared, "shared_branch": False}
+    return [
+        # ── 가전제품 (20) ────────────────────────────────────────
+        t("삼성 가전 신상품 입고 검수",           "appliances", "H", "강준호",   2,  "inprog"),
+        t("여름 에어컨 특가 기획전 준비",         "appliances", "H", "이성민",   7,  "todo"),
+        t("LG전자 계약 갱신 협상",               "appliances", "H", "박재훈",  14,  "inprog"),
+        t("가전 VMD 여름 시즌 교체",             "appliances", "M", "최동원",  -5,  "done"),
+        t("5월 가전 매출 분석 보고",             "appliances", "H", "김성우", -10,  "done",  True),
+        t("고가 가전 VIP 시연 행사 기획",        "appliances", "H", "강준호",  15,  "todo"),
+        t("제습기·공기청정기 재고 점검",          "appliances", "M", "이성민",  -6,  "done"),
+        t("로봇청소기 신규 브랜드 입점 협의",    "appliances", "M", "박재훈",  20,  "todo"),
+        t("가전 제품 사후 서비스 개선 기획",     "appliances", "L", "최동원",  25,  "todo"),
+        t("에어컨 설치 서비스 제휴 협의",        "appliances", "M", "김성우",   8,  "inprog"),
+        t("스마트홈 가전 체험존 기획",           "appliances", "H", "강준호",  18,  "todo"),
+        t("가전 정기 A/S 행사 기획",            "appliances", "M", "이성민",  22,  "todo"),
+        t("주요 가전 브랜드 판매율 분석",        "appliances", "M", "박재훈", -15,  "done"),
+        t("연말 대형 가전 행사 사전 기획",       "appliances", "H", "최동원",  60,  "todo"),
+        t("가전 브랜드 광고 소재 업데이트",      "appliances", "L", "김성우", -12,  "done"),
+        t("세탁기·건조기 번들 프로모션 기획",    "appliances", "H", "강준호",  10,  "todo"),
+        t("소형 가전 신규 브랜드 입점 검토",     "appliances", "M", "이성민",  28,  "todo"),
+        t("가전 제품 반품 및 교환 처리",         "appliances", "M", "박재훈",  -3,  "done"),
+        t("F/W 시즌 난방 가전 소싱 계획",        "appliances", "H", "최동원",  50,  "todo"),
+        t("가전 고객 만족도 설문 분석",          "appliances", "L", "김성우", -20,  "done"),
+        # ── 생활용품 (20) ────────────────────────────────────────
+        t("여름 생활용품 신상 입고 검수",         "living", "M", "정현우",   3,  "inprog"),
+        t("생활용품 플로어 진열 재배치",          "living", "M", "한지민",   8,  "todo"),
+        t("생활용품 브랜드 계약 갱신",            "living", "H", "서민준",  12,  "inprog"),
+        t("여름 욕실용품 기획전 준비",            "living", "M", "오세진",  10,  "todo"),
+        t("5월 생활용품 매출 분석",              "living", "H", "임진호",  -8,  "done"),
+        t("친환경 생활용품 입점 협의",            "living", "M", "정현우",  20,  "todo"),
+        t("청소용품 신상 라인 검토",              "living", "L", "한지민",  15,  "todo"),
+        t("생활용품 재고 현황 조사",             "living", "M", "서민준",  -5,  "done"),
+        t("향기·디퓨저 신규 브랜드 입점",        "living", "M", "오세진",   7,  "inprog"),
+        t("여름 방충 용품 특가 행사 기획",        "living", "H", "임진호",  -3,  "done"),
+        t("생활용품 VMD 업데이트",               "living", "M", "정현우",   6,  "todo"),
+        t("PB 생활용품 개발 검토",              "living", "H", "한지민",  30,  "todo"),
+        t("생활용품 SNS 리뷰 이벤트 기획",       "living", "L", "서민준",  22,  "todo"),
+        t("불량 반품 처리 및 정리",              "living", "L", "오세진",  -7,  "done"),
+        t("생활용품 고객 구매 패턴 분석",        "living", "M", "임진호", -12,  "done"),
+        t("세제·세탁용품 특가 기획",             "living", "M", "정현우",   5,  "inprog"),
+        t("여름 선풍기 관련 생활용품 기획",       "living", "M", "한지민",   9,  "todo"),
+        t("생활용품 제조사 미팅 조율",            "living", "L", "서민준", -15,  "done"),
+        t("수납·정리 용품 신상 진열",            "living", "M", "오세진",  14,  "todo"),
+        t("F/W 시즌 생활용품 소싱 계획",         "living", "H", "임진호",  45,  "todo"),
+        # ── 주방용품 (20) ────────────────────────────────────────
+        t("르크루제 신상품 입고 검수",            "kitchen", "H", "김지훈",   2,  "inprog"),
+        t("여름 주방용품 기획전 준비",            "kitchen", "H", "이준혁",   8,  "todo"),
+        t("주방 가전 브랜드 계약 갱신",           "kitchen", "H", "박성호",  12,  "inprog"),
+        t("주방용품 VMD 여름 교체",              "kitchen", "M", "최재훈",  -5,  "done"),
+        t("5월 주방용품 매출 분석",              "kitchen", "H", "나민준", -10,  "done",  True),
+        t("신규 쿡웨어 브랜드 입점 협의",        "kitchen", "M", "김지훈",  20,  "todo"),
+        t("전기밥솥 신상 시연 행사 기획",        "kitchen", "H", "이준혁",  15,  "todo"),
+        t("주방용품 재고 현황 파악",             "kitchen", "M", "박성호",  -7,  "done"),
+        t("친환경 주방용품 기획전 준비",         "kitchen", "M", "최재훈",  18,  "todo"),
+        t("여름 바베큐 용품 특가 기획",          "kitchen", "H", "나민준",  -3,  "done"),
+        t("주방 소도구 신규 라인 검토",          "kitchen", "L", "김지훈",  22,  "todo"),
+        t("쿠킹 클래스 행사 연계 기획",          "kitchen", "M", "이준혁",  25,  "todo"),
+        t("주방가전 불량 반품 처리",             "kitchen", "M", "박성호",  -4,  "done"),
+        t("에어프라이어 신제품 기획전",          "kitchen", "H", "최재훈",   6,  "inprog"),
+        t("F/W 주방용품 소싱 계획",             "kitchen", "H", "나민준",  50,  "todo"),
+        t("주방용품 SNS 콘텐츠 기획",           "kitchen", "L", "김지훈",   9,  "inprog"),
+        t("제휴 쿠킹 브랜드 협업 기획",         "kitchen", "M", "이준혁",  28,  "todo"),
+        t("주방 정리·수납용품 진열 기획",        "kitchen", "M", "박성호", -12,  "done"),
+        t("전통 국산 도자기 입점 검토",          "kitchen", "L", "최재훈",  35,  "todo"),
+        t("주방용품 판매 실적 월간 보고",        "kitchen", "H", "나민준", -15,  "done"),
+        # ── 가구/인테리어 (20) ───────────────────────────────────
+        t("여름 신상 가구 입고 검수",            "furniture", "H", "송재호",   3,  "inprog"),
+        t("인테리어 소품 VMD 여름 교체",         "furniture", "M", "조민수",   8,  "todo"),
+        t("가구 브랜드 계약 갱신",              "furniture", "H", "임태준",  14,  "inprog"),
+        t("여름 리빙 인테리어 기획전",           "furniture", "H", "정현석",  10,  "todo"),
+        t("5월 가구 매출 분석 보고",            "furniture", "H", "유재원", -10,  "done",  True),
+        t("신규 북유럽 스타일 브랜드 입점",      "furniture", "M", "송재호",  25,  "todo"),
+        t("가구 전시장 레이아웃 재배치",         "furniture", "M", "조민수",  12,  "inprog"),
+        t("가구 재고 및 손상 현황 점검",         "furniture", "M", "임태준",  -5,  "done"),
+        t("침실 인테리어 패키지 기획",           "furniture", "H", "정현석",  18,  "todo"),
+        t("친환경 가구 라인 입점 협의",          "furniture", "M", "유재원",  28,  "todo"),
+        t("F/W 가구 소싱 출장 준비",            "furniture", "H", "송재호",  45,  "todo"),
+        t("홈 스타일링 서비스 기획",             "furniture", "M", "조민수",  22,  "todo"),
+        t("소파 브랜드 특가 행사 기획",          "furniture", "H", "임태준",   7,  "inprog"),
+        t("가구 배송·설치 제휴 협의",           "furniture", "L", "정현석",  30,  "todo"),
+        t("가구 AS 처리 현황 보고",             "furniture", "M", "유재원",  -8,  "done"),
+        t("인테리어 소품 신상 진열 기획",        "furniture", "L", "송재호", -12,  "done"),
+        t("가구 VIP 고객 인테리어 상담 기획",    "furniture", "H", "조민수",  20,  "todo"),
+        t("아동 가구 신규 브랜드 입점",          "furniture", "M", "임태준",  35,  "todo"),
+        t("리빙 카탈로그 제작 기획",             "furniture", "M", "정현석",   9,  "inprog"),
+        t("가구 트렌드 리포트 작성",             "furniture", "L", "유재원", -18,  "done"),
+    ]
+
+
+def seed_events_mens_sports():
+    def e(title, offset, typ, note, cell=None, shared=True):
+        return {"id": new_id(), "title": title, "date": today_str(offset),
+                "type": typ, "note": note, "shared": shared,
+                "shared_branch": False, "cell": cell, "source": "manual"}
+    return [
+        e("스포츠 브랜드 신상 발표회",          3,  "meeting",  "나이키·아디다스 참석"),
+        e("여름 골프 특가 행사 오픈",           10,  "promo",    "7일간 진행"),
+        e("아웃도어 캠핑 체험 이벤트",          15,  "promo",    "B1 특설 무대"),
+        e("남성 패션 여름 컬렉션 런칭",          12,  "promo",    "4F 행사장", "mens_fashion"),
+        e("팀 월간 영업 보고",                  -5,  "deadline", "팀장 보고"),
+        e("골프 VIP 고객 초청 행사",            14,  "promo",    "VIP 100명", "golf"),
+        e("골프 용품 할인 기간 시작",            8,  "promo",    "10일간 진행", "golf"),
+        e("F/W 소싱 출장",                     45,  "etc",      "서울·대구", None, False),
+        e("남성스포츠팀 정기 회의",              5,  "meeting",  "전 셀 참석"),
+        e("스포츠 협력사 미팅",                  7,  "meeting",  "나이키코리아", "sports_gear", False),
+        e("매출 목표 점검 회의",                20,  "deadline", "경영진 보고"),
+        e("남성 룩북 촬영",                    10,  "etc",      "외부 스튜디오", "mens_fashion", False),
+        e("시즌오프 할인 행사 시작",            22,  "promo",    "전 셀 동시"),
+        e("아웃도어 신상 런칭 행사",             6,  "promo",    "1F 특설 공간", "outdoor"),
+        e("팀빌딩 행사",                       -15,  "meeting",  "전 팀원 참석"),
+    ]
+
+
+def seed_events_womens():
+    def e(title, offset, typ, note, cell=None, shared=True):
+        return {"id": new_id(), "title": title, "date": today_str(offset),
+                "type": typ, "note": note, "shared": shared,
+                "shared_branch": False, "cell": cell, "source": "manual"}
+    return [
+        e("여성 패션 여름 컬렉션 발표",          8,  "promo",    "3F 전체"),
+        e("뷰티 체험 팝업 행사",               12,  "promo",    "1F 코너", "beauty"),
+        e("잡화·핸드백 특가 기획전",            10,  "promo",    "명품관 전체", "accessories"),
+        e("VIP 여성 스타일링 행사",             18,  "promo",    "VIP 80명"),
+        e("팀 월간 영업 보고",                  -5,  "deadline", "팀장 보고"),
+        e("뷰티 클래스 행사",                   20,  "promo",    "뷰티 라운지", "beauty"),
+        e("여성팀 브랜드 협의 미팅",             5,  "meeting",  "전 셀 참석"),
+        e("명품 핸드백 신상 전시",               7,  "promo",    "명품관 팝업", "accessories"),
+        e("F/W 여성 소싱 출장",                50,  "etc",      "파리·밀라노", None, False),
+        e("여성팀 월간 회의",                    3,  "meeting",  "전 셀 참석"),
+        e("여름 수영복 기획전 오픈",              9,  "promo",    "5F 비치 존", "lingerie"),
+        e("뷰티 인플루언서 협업 행사",           15,  "promo",    "유튜버 5명 초청", "beauty"),
+        e("여성 패션 룩북 촬영",               12,  "etc",      "외부 스튜디오", "womens_fashion", False),
+        e("패션 트렌드 리포트 발표",             25,  "deadline", "경영진 발표"),
+        e("팀빌딩 행사",                       -20,  "meeting",  "전 팀원 참석"),
+    ]
+
+
+def seed_events_living():
+    def e(title, offset, typ, note, cell=None, shared=True):
+        return {"id": new_id(), "title": title, "date": today_str(offset),
+                "type": typ, "note": note, "shared": shared,
+                "shared_branch": False, "cell": cell, "source": "manual"}
+    return [
+        e("여름 에어컨 특가 행사 오픈",          5,  "promo",    "전 층 동시"),
+        e("삼성·LG 신상 가전 발표회",           8,  "meeting",  "브랜드 담당자"),
+        e("주방용품 쿠킹 클래스 행사",          12,  "promo",    "요리 강사 초청", "kitchen"),
+        e("가구 인테리어 기획전 오픈",           10,  "promo",    "6F 전체"),
+        e("팀 월간 영업 보고",                  -5,  "deadline", "팀장 보고"),
+        e("스마트홈 가전 체험존 오픈",           18,  "promo",    "4F 체험존", "appliances"),
+        e("가전 정기 A/S 행사",                15,  "etc",      "협력 업체 참여", "appliances"),
+        e("생활가전팀 월간 회의",                3,  "meeting",  "전 셀 참석"),
+        e("가구 소싱 출장",                    45,  "etc",      "경기·인천 가구 단지", None, False),
+        e("생활용품 특가 기획전",                7,  "promo",    "1주일간 진행", "living"),
+        e("가전 VIP 시연 행사",                14,  "promo",    "VIP 50명", "appliances"),
+        e("F/W 난방 가전 소싱 계획 회의",       50,  "meeting",  "브랜드 미팅"),
+        e("주방용품 신상 런칭 행사",             6,  "promo",    "B1 주방관", "kitchen"),
+        e("생활가전팀 분기 보고",               30,  "deadline", "경영진 발표"),
+        e("팀빌딩 행사",                       -18,  "meeting",  "전 팀원 참석"),
+    ]
+
+
+def seed_memos_mens_sports():
+    return [
+        {"id": new_id(), "title": "6월 스포츠팀 회의록",
+         "content": "참석: 팀장, 각 셀장\n\n- 여름 할인 행사 일정 확정\n- 골프 VIP 행사 준비 현황 공유\n- F/W 소싱 출장 일정 조율 필요",
+         "date": today_str(0), "cell": "sports_gear", "shared": True, "shared_branch": False},
+        {"id": new_id(), "title": "F/W 아웃도어 소싱 방향성",
+         "content": "- 고어텍스 소재 제품 비중 확대\n- 경량화 트렌드 반영 필수\n- 협력사: 블랙야크, 노스페이스 우선",
+         "date": today_str(-2), "cell": "outdoor", "shared": False, "shared_branch": False},
+    ]
+
+
+def seed_memos_womens():
+    return [
+        {"id": new_id(), "title": "뷰티 브랜드 입점 협의 결과",
+         "content": "협의 브랜드: A뷰티, B코스메틱\n위치: 1F 뷰티 라운지\n입점 예정: 8월 초\n- 런칭 팝업 이벤트 함께 기획 예정",
+         "date": today_str(-1), "cell": "beauty", "shared": True, "shared_branch": False},
+        {"id": new_id(), "title": "VIP 여성 스타일링 행사 기획 메모",
+         "content": "일시: 6월 18일 14:00\n대상: VIP 고객 80명\n구성: 패션 + 뷰티 + 잡화 스타일링 코너\n- 스타일리스트 3명 섭외 완료",
+         "date": today_str(0), "cell": "womens_fashion", "shared": False, "shared_branch": False},
+    ]
+
+
+def seed_memos_living():
+    return [
+        {"id": new_id(), "title": "여름 에어컨 특가 행사 메모",
+         "content": "기간: 6월 5~7일 (3일간)\n참여 브랜드: 삼성, LG, 위니아\n목표 매출: 전년 대비 +15%\n- 설치 제휴 업체 협약 완료",
+         "date": today_str(0), "cell": "appliances", "shared": True, "shared_branch": False},
+        {"id": new_id(), "title": "쿠킹 클래스 행사 기획",
+         "content": "일시: 6월 12일 14:00\n장소: B1 주방관 체험존\n강사: 외부 셰프 초청\n- 르크루제·발라르기 제품 활용 시연",
+         "date": today_str(-1), "cell": "kitchen", "shared": False, "shared_branch": False},
+    ]
+
+
 def _build_team_cfg(team_def: dict, branch_name: str) -> dict:
     return {
         "manager_pw":      team_def["manager_pw"],
@@ -481,6 +907,30 @@ def init_state():
                 "tasks":       seed_tasks_support(),
                 "events":      seed_events_support(),
                 "memos":       seed_memos_support(),
+                "files":       [],
+                "board_posts": [],
+            },
+            "mens_sports": {
+                "cfg":         _build_team_cfg(DEFAULT_TEAMS["mens_sports"], branch_name),
+                "tasks":       seed_tasks_mens_sports(),
+                "events":      seed_events_mens_sports(),
+                "memos":       seed_memos_mens_sports(),
+                "files":       [],
+                "board_posts": [],
+            },
+            "womens": {
+                "cfg":         _build_team_cfg(DEFAULT_TEAMS["womens"], branch_name),
+                "tasks":       seed_tasks_womens(),
+                "events":      seed_events_womens(),
+                "memos":       seed_memos_womens(),
+                "files":       [],
+                "board_posts": [],
+            },
+            "living": {
+                "cfg":         _build_team_cfg(DEFAULT_TEAMS["living"], branch_name),
+                "tasks":       seed_tasks_living(),
+                "events":      seed_events_living(),
+                "memos":       seed_memos_living(),
                 "files":       [],
                 "board_posts": [],
             },
