@@ -221,8 +221,8 @@ def render_branch_board():
         st.session_state.branch_board_posts = posts
 
     branch_name = st.session_state.branch_cfg.get("branch_name", "인천점")
-    st.markdown(f"### 💬 {branch_name} 부문 건의 게시판")
-    st.caption("팀 구분 없이 부문 전체에 건의사항을 익명으로 남길 수 있습니다.")
+    st.markdown(f"### 💬 {branch_name} 점 건의함 (익명)")
+    st.caption("팀 구분 없이 점 전체에 건의사항을 익명으로 남길 수 있습니다.")
 
     my_emoji, my_name = _get_my_animal(key="branch_board_animal")
 

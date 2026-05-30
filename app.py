@@ -302,7 +302,7 @@ with st.sidebar:
         # 팀 익명게시판: 팀장은 항상 볼 수 있음 (설정 페이지 접근용)
         if "📌 팀 익명게시판" not in pages:
             pages["📌 팀 익명게시판"] = "board"
-        pages["💬 부문 건의함"] = "branch_board"
+        pages["💬 점 건의함(익명)"] = "branch_board"
         # 어드민은 팀장만 (점장 제외)
         if user["cell"] == "manager":
             pages["⚙️ 어드민 설정"] = "admin"
@@ -312,7 +312,7 @@ with st.sidebar:
             for label, key in ALL_PAGES.items()
             if menu_vis.get(key, True) and (key != "files" or global_files)
         }
-        pages["💬 부문 건의함"] = "branch_board"
+        pages["💬 점 건의함(익명)"] = "branch_board"
 
     # 현재 페이지가 숨겨진 경우 첫 번째 표시 메뉴로 이동
     if st.session_state.get("current_page") not in pages.values():
