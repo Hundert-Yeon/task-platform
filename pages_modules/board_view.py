@@ -132,7 +132,7 @@ def render():
 
     # 메뉴 가시성 체크
     menu_vis = cfg.get("menu_visibility", {})
-    if not menu_vis.get("board", False) and not is_manager:
+    if not menu_vis.get("board", True) and not is_manager:
         st.info("현재 게시판이 비공개 상태입니다. 팀장이 활성화하면 이용할 수 있습니다.")
         return
 

@@ -295,7 +295,7 @@ with st.sidebar:
         pages = {
             label: key
             for label, key in ALL_PAGES.items()
-            if (key != "files" or global_files) and (key != "board" or menu_vis.get("board", False))
+            if (key != "files" or global_files) and (key != "board" or menu_vis.get("board", True))
         }
         if menu_vis.get("shared_feed", True):
             pages["🌐 전체 공유 피드"] = "shared_feed"
