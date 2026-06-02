@@ -242,7 +242,10 @@ def get_ai_checklist() -> list[dict]:
 
     try:
         text = _call_gemini(prompt, max_tokens=800)
-        return _extract_json(text)
+        result = _extract_json(text)
+        if not isinstance(result, list):
+            raise ValueError("응답이 배열 형식이 아닙니다")
+        return result
     except Exception as e:
         return [{"icon": "⚠️", "text": f"AI 연결 오류: {str(e)[:60]}", "level": "urgent"}]
 
@@ -285,7 +288,10 @@ def get_ai_task_advice(task: dict) -> list[dict]:
 
     try:
         text = _call_gemini(prompt, max_tokens=600)
-        return _extract_json(text)
+        result = _extract_json(text)
+        if not isinstance(result, list):
+            raise ValueError("응답이 배열 형식이 아닙니다")
+        return result
     except Exception as e:
         return [{"icon": "⚠️", "text": f"AI 조언 오류: {str(e)[:60]}", "level": "urgent"}]
 
@@ -330,7 +336,15 @@ def get_ai_task_advice_detail(task: dict) -> dict:
 
     try:
         text = _call_gemini(prompt, max_tokens=900)
-        return _extract_json(text)
+        result = _extract_json(text)
+        # list로 반환된 경우 dict로 변환
+        if isinstance(result, list):
+            result = {"summary": "", "items": result}
+        if not isinstance(result, dict):
+            raise ValueError("응답이 dict 형식이 아닙니다")
+        result.setdefault("summary", "")
+        result.setdefault("items", [])
+        return result
     except Exception as e:
         return {
             "summary": f"AI 조언 생성 중 오류: {str(e)[:60]}",

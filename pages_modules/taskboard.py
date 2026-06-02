@@ -74,6 +74,10 @@ def _task_detail_popup(task: dict):
     # ── AI 심층 분석 ──────────────────────────────────────
     from utils.ai_helper import get_ai_task_advice_detail, get_client as _gc
     _dk = f"task_advice_detail_{task['id']}"
+    # API 키가 연결됐는데 "키 없음" 캐시가 남아 있으면 삭제 후 재생성
+    _cached_det = st.session_state.get(_dk)
+    if _gc() and isinstance(_cached_det, dict) and "GEMINI_API_KEY" in _cached_det.get("summary", ""):
+        st.session_state.pop(_dk, None)
     if _dk not in st.session_state:
         if _gc():
             with st.spinner("AI 심층 분석 중..."):
@@ -159,22 +163,29 @@ def render():
     if filter_cell != "all":
         visible = [t for t in visible if t["cell"] == filter_cell]
 
-    # ── AI 조언 사전 생성 (캐시 없는 Task만) ─────────────────
+    # ── AI 조언 사전 생성 (캐시 없는 Task + "키 없음" 구버전 캐시 재취득) ─────────
     from utils.ai_helper import get_ai_task_advice, get_client
-    _need = [t for t in visible if not st.session_state.get(f"task_advice_{t['id']}")]
+    _api_on = get_client()
+
+    def _advice_stale(_tid: str) -> bool:
+        cached = st.session_state.get(f"task_advice_{_tid}")
+        if not cached:
+            return True
+        # API 키가 연결됐는데 "키 없음" 메시지가 캐시되어 있으면 재취득
+        if _api_on and isinstance(cached, list) and cached and cached[0].get("icon") == "🔑":
+            return True
+        return False
+
+    _need = [t for t in visible if _advice_stale(t["id"])]
     if _need:
-        _ctx = st.spinner(f"AI 조언 생성 중... ({len(_need)}건)") if get_client() else None
+        _ctx = st.spinner(f"AI 조언 생성 중... ({len(_need)}건)") if _api_on else None
         if _ctx:
             with _ctx:
                 for _t in _need:
-                    _k = f"task_advice_{_t['id']}"
-                    if not st.session_state.get(_k):
-                        st.session_state[_k] = get_ai_task_advice(_t)
+                    st.session_state[f"task_advice_{_t['id']}"] = get_ai_task_advice(_t)
         else:
             for _t in _need:
-                _k = f"task_advice_{_t['id']}"
-                if not st.session_state.get(_k):
-                    st.session_state[_k] = get_ai_task_advice(_t)
+                st.session_state[f"task_advice_{_t['id']}"] = get_ai_task_advice(_t)
 
     # ── 칸반 보드 ────────────────────────────────────────────
     today = date.today()
