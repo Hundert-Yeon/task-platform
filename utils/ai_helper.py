@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from utils.state import EV_TYPES
 
 _GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-_MODEL       = "gemini-2.0-flash"
+_MODEL       = "gemini-2.5-flash"
 
 
 def _get_api_key() -> str:

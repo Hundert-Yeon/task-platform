@@ -412,7 +412,7 @@ def _test_api_key(api_key: str):
     """Gemini API 키 유효성 테스트. 성공이면 True, 실패면 오류 메시지 문자열 반환."""
     import requests as req
     _GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-    _MODEL       = "gemini-2.0-flash"
+    _MODEL       = "gemini-2.5-flash"
     try:
         resp = req.post(
             f"{_GEMINI_BASE}/{_MODEL}:generateContent?key={api_key}",
