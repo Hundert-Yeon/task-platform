@@ -53,7 +53,9 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 
 /* Primary 버튼 (입장하기) */
 button[data-testid="baseButton-primary"],
-[data-testid="stBaseButton-primary"] {
+[data-testid="stBaseButton-primary"],
+button[data-testid="baseButton-primaryFormSubmit"],
+[data-testid="stBaseButton-primaryFormSubmit"] {
     background: rgba(201,185,154,0.15) !important;
     border: 1px solid rgba(201,185,154,0.4) !important;
     color: #c9b99a !important;
@@ -61,7 +63,9 @@ button[data-testid="baseButton-primary"],
     font-weight: 600 !important;
 }
 button[data-testid="baseButton-primary"]:hover,
-[data-testid="stBaseButton-primary"]:hover {
+[data-testid="stBaseButton-primary"]:hover,
+button[data-testid="baseButton-primaryFormSubmit"]:hover,
+[data-testid="stBaseButton-primaryFormSubmit"]:hover {
     background: rgba(201,185,154,0.25) !important;
     border-color: rgba(201,185,154,0.7) !important;
     color: #e5d9c3 !important;
