@@ -161,6 +161,7 @@ def _render_member_login(branch_cfg: dict):
         st.error("등록된 팀이 없습니다.")
         return
 
+    # 셀렉트박스는 form 밖에 — 선택 시 즉시 리렌더링이 필요하기 때문
     selected_team_id = st.selectbox(
         "소속 팀",
         options=list(team_options.keys()),
@@ -188,55 +189,43 @@ def _render_member_login(branch_cfg: dict):
         key="login_cell_sel",
     )
 
-    name_input = st.text_input("이름", placeholder="이름을 입력하세요", key="login_name")
+    # 텍스트 입력 + 버튼은 form 안에 — Enter 키 제출 지원
+    with st.form("member_login_form", border=False):
+        name_input = st.text_input("이름", placeholder="이름을 입력하세요", key="login_name")
 
-    if selected_cell and name_input.strip():
+        pw_input = None
         if selected_cell == "manager":
-            badge_color = "#1d4ed8"
-            badge_text  = f"{team_cfg['team_name']} 팀장"
-        else:
-            u_info      = units.get(selected_cell, {})
-            badge_color = u_info.get("color", "#6b7280")
-            badge_text  = u_info.get("name", "")
-        st.markdown(f"""
-        <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;
-                    background:rgba(255,255,255,0.04);border-radius:8px;
-                    border:1px solid rgba(201,185,154,0.15);margin-top:-6px;margin-bottom:4px">
-          <span style="font-size:13px;font-weight:600;color:#d1d5db">{name_input.strip()}</span>
-          <span style="background:{badge_color};color:white;font-size:10px;
-                       font-weight:700;padding:2px 9px;border-radius:4px">{badge_text}</span>
-        </div>
-        """, unsafe_allow_html=True)
+            pw_input = st.text_input("팀장 비밀번호", type="password", placeholder="비밀번호 입력",
+                                     key="login_mgr_pw")
 
-    pw_input = None
-    if selected_cell == "manager":
-        pw_input = st.text_input("팀장 비밀번호", type="password", placeholder="비밀번호 입력",
-                                 key="login_mgr_pw")
+        submitted = st.form_submit_button(
+            "입장하기 →", use_container_width=True, type="primary"
+        )
 
-    if st.button("입장하기 →", use_container_width=True, type="primary", key="login_member_btn"):
-        if not selected_cell:
-            st.error("소속/역할을 선택해주세요")
-            return
-        if not name_input.strip():
-            st.error("이름을 입력해주세요")
-            return
-        if selected_cell == "manager":
-            if pw_input != team_cfg.get("manager_pw", "0000"):
-                st.error("비밀번호가 올바르지 않습니다")
-                return
+        if submitted:
+            if not selected_cell:
+                st.error("소속/역할을 선택해주세요")
+                st.stop()
+            if not name_input.strip():
+                st.error("이름을 입력해주세요")
+                st.stop()
+            if selected_cell == "manager":
+                if pw_input != team_cfg.get("manager_pw", "0000"):
+                    st.error("비밀번호가 올바르지 않습니다")
+                    st.stop()
 
-        _load_team(selected_team_id)
-        sync_tasks_to_calendar()
+            _load_team(selected_team_id)
+            sync_tasks_to_calendar()
 
-        st.session_state.logged_in    = True
-        st.session_state.current_page = "dashboard"
-        st.session_state.user = {
-            "cell":    selected_cell,
-            "name":    name_input.strip(),
-            "team_id": selected_team_id,
-            "role":    "manager" if selected_cell == "manager" else "member",
-        }
-        st.rerun()
+            st.session_state.logged_in    = True
+            st.session_state.current_page = "dashboard"
+            st.session_state.user = {
+                "cell":    selected_cell,
+                "name":    name_input.strip(),
+                "team_id": selected_team_id,
+                "role":    "manager" if selected_cell == "manager" else "member",
+            }
+            st.rerun()
 
 
 def _render_store_manager_login(branch_cfg: dict):
@@ -248,30 +237,35 @@ def _render_store_manager_login(branch_cfg: dict):
     </div>
     """, unsafe_allow_html=True)
 
-    name_input = st.text_input("이름", placeholder="이름을 입력하세요", key="login_sm_name")
-    pw_input   = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요",
-                               key="login_sm_pw")
+    with st.form("sm_login_form", border=False):
+        name_input = st.text_input("이름", placeholder="이름을 입력하세요", key="login_sm_name")
+        pw_input   = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요",
+                                   key="login_sm_pw")
 
-    if st.button("입장하기 →", use_container_width=True, type="primary", key="login_sm_btn"):
-        if not name_input.strip():
-            st.error("이름을 입력해주세요")
-            return
-        store_pw = branch_cfg.get("store_manager_pw", "0000")
-        if pw_input != store_pw:
-            st.error("비밀번호가 올바르지 않습니다")
-            return
+        submitted = st.form_submit_button(
+            "입장하기 →", use_container_width=True, type="primary"
+        )
 
-        st.session_state.logged_in    = True
-        st.session_state.current_page = "dashboard"
-        st.session_state.pop("sm_team_confirmed", None)
-        st.session_state.show_sm_login = False
-        st.session_state.user = {
-            "cell":    "store_manager",
-            "name":    name_input.strip(),
-            "team_id": None,
-            "role":    "store_manager",
-        }
-        st.rerun()
+        if submitted:
+            if not name_input.strip():
+                st.error("이름을 입력해주세요")
+                st.stop()
+            store_pw = branch_cfg.get("store_manager_pw", "0000")
+            if pw_input != store_pw:
+                st.error("비밀번호가 올바르지 않습니다")
+                st.stop()
+
+            st.session_state.logged_in    = True
+            st.session_state.current_page = "dashboard"
+            st.session_state.pop("sm_team_confirmed", None)
+            st.session_state.show_sm_login = False
+            st.session_state.user = {
+                "cell":    "store_manager",
+                "name":    name_input.strip(),
+                "team_id": None,
+                "role":    "store_manager",
+            }
+            st.rerun()
 
     if st.button("← 일반 로그인", key="goto_member_login"):
         st.session_state.show_sm_login = False
