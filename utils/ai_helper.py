@@ -41,6 +41,27 @@ def _throttle():
     st.session_state[_key] = _t.time()
 
 
+def _extract_text(candidates: list) -> str:
+    """candidates에서 thinking 파트를 제외한 실제 텍스트를 추출."""
+    parts = candidates[0]["content"]["parts"]
+    text_parts = [p["text"] for p in parts if not p.get("thought", False) and "text" in p]
+    return "\n".join(text_parts).strip()
+
+
+def _extract_json(text: str):
+    """응답 텍스트에서 JSON을 안전하게 추출 (마크다운 블록 제거 + 범위 탐색)."""
+    text = text.replace("```json", "").replace("```", "").strip()
+    for start_ch, end_ch in [("[", "]"), ("{", "}")]:
+        s = text.find(start_ch)
+        e = text.rfind(end_ch)
+        if s != -1 and e != -1 and e > s:
+            try:
+                return json.loads(text[s : e + 1])
+            except json.JSONDecodeError:
+                pass
+    return json.loads(text)
+
+
 def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000, _retry: int = 0) -> str:
     """Gemini generateContent API 호출. 자동 스로틀링 + 429 시 1회 재시도."""
     import time as _t
@@ -53,7 +74,11 @@ def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000, _retry: 
 
     body: dict = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
+        "generationConfig": {
+            "maxOutputTokens": max_tokens,
+            "temperature": 0.7,
+            "thinkingConfig": {"thinkingBudget": 0},  # 2.5 모델 thinking 비활성화
+        },
     }
     if system:
         body["systemInstruction"] = {"parts": [{"text": system}]}
@@ -84,7 +109,7 @@ def _call_gemini(prompt: str, system: str = "", max_tokens: int = 1000, _retry: 
     candidates = resp.json().get("candidates", [])
     if not candidates:
         raise Exception("Gemini 응답이 비어있습니다. 다시 시도해주세요.")
-    return candidates[0]["content"]["parts"][0]["text"]
+    return _extract_text(candidates)
 
 
 def _call_gemini_chat(messages: list[dict], system: str = "", max_tokens: int = 1000) -> str:
@@ -102,7 +127,11 @@ def _call_gemini_chat(messages: list[dict], system: str = "", max_tokens: int = 
 
     body: dict = {
         "contents": contents,
-        "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
+        "generationConfig": {
+            "maxOutputTokens": max_tokens,
+            "temperature": 0.7,
+            "thinkingConfig": {"thinkingBudget": 0},  # 2.5 모델 thinking 비활성화
+        },
     }
     if system:
         body["systemInstruction"] = {"parts": [{"text": system}]}
@@ -130,7 +159,7 @@ def _call_gemini_chat(messages: list[dict], system: str = "", max_tokens: int = 
     candidates = resp.json().get("candidates", [])
     if not candidates:
         raise Exception("Gemini 응답이 비어있습니다.")
-    return candidates[0]["content"]["parts"][0]["text"]
+    return _extract_text(candidates)
 
 
 # 하위 호환 (admin_view에서 import)
@@ -213,8 +242,7 @@ def get_ai_checklist() -> list[dict]:
 
     try:
         text = _call_gemini(prompt, max_tokens=800)
-        text = text.replace("```json", "").replace("```", "").strip()
-        return json.loads(text)
+        return _extract_json(text)
     except Exception as e:
         return [{"icon": "⚠️", "text": f"AI 연결 오류: {str(e)[:60]}", "level": "urgent"}]
 
@@ -257,8 +285,7 @@ def get_ai_task_advice(task: dict) -> list[dict]:
 
     try:
         text = _call_gemini(prompt, max_tokens=600)
-        text = text.replace("```json", "").replace("```", "").strip()
-        return json.loads(text)
+        return _extract_json(text)
     except Exception as e:
         return [{"icon": "⚠️", "text": f"AI 조언 오류: {str(e)[:60]}", "level": "urgent"}]
 
@@ -303,8 +330,7 @@ def get_ai_task_advice_detail(task: dict) -> dict:
 
     try:
         text = _call_gemini(prompt, max_tokens=900)
-        text = text.replace("```json", "").replace("```", "").strip()
-        return json.loads(text)
+        return _extract_json(text)
     except Exception as e:
         return {
             "summary": f"AI 조언 생성 중 오류: {str(e)[:60]}",
