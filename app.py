@@ -65,6 +65,23 @@ section[data-testid="stSidebar"] {
   box-shadow: 1px 0 6px rgba(0,0,0,0.04) !important;
 }
 
+/* ── 데스크탑: 사이드바 항상 표시 ── */
+@media (min-width: 768px) {
+  section[data-testid="stSidebar"] {
+    display: flex !important;
+    transform: none !important;
+    left: 0 !important;
+    min-width: 220px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+  }
+  /* 접힘 제어 버튼(>)은 데스크탑에서 숨김 — 사이드바가 항상 열려 있으므로 불필요 */
+  [data-testid="collapsedControl"] {
+    display: none !important;
+  }
+}
+
 /* 사이드바 텍스트 기본색 = 어두운 회색 */
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] small,
@@ -499,17 +516,40 @@ with st.sidebar:
 # ── 페이지 라우팅 ────────────────────────────────────────────
 page = st.session_state.get("current_page", "dashboard")
 
-# 페이지가 바뀔 때만 스크롤 맨 위로 이동
-if st.session_state.get("_last_page") != page:
+# 페이지 전환 여부 판단
+_page_changed = st.session_state.get("_last_page") != page
+if _page_changed:
     st.session_state["_last_page"] = page
-    _components.html(
-        """<script>
-        var el = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
-        if (el) el.scrollTop = 0;
-        window.parent.scrollTo(0, 0);
-        </script>""",
-        height=0,
-    )
+
+# PC 사이드바 강제 표시 + 페이지 전환 시 스크롤 상단
+_components.html(f"""
+<script>
+(function() {{
+  var win = window.parent;
+  var doc = win.document;
+
+  // ─ PC(≥768px): 사이드바 인라인 스타일 초기화 → 항상 표시
+  if (win.innerWidth >= 768) {{
+    var sb = doc.querySelector('section[data-testid="stSidebar"]');
+    if (sb) {{
+      sb.style.removeProperty('transform');
+      sb.style.removeProperty('left');
+      sb.style.display   = 'flex';
+      sb.style.visibility = 'visible';
+      sb.style.opacity   = '1';
+      sb.style.minWidth  = '220px';
+    }}
+  }}
+
+  // ─ 페이지 전환 시만 스크롤 최상단
+  if ({'true' if _page_changed else 'false'}) {{
+    var el = doc.querySelector('[data-testid="stAppViewContainer"]');
+    if (el) el.scrollTop = 0;
+    win.scrollTo(0, 0);
+  }}
+}})();
+</script>
+""", height=0)
 
 if page == "dashboard":
     dashboard.render()
