@@ -264,6 +264,21 @@ button[data-testid="baseButton-primaryFormSubmit"]:hover,
   [data-testid="stHeader"] {
     min-height: 2.75rem !important;
   }
+
+  /* ── 사이드바 토글 버튼 복원 ──
+     전역 CSS에서 stToolbar를 display:none 처리했는데
+     모바일에서는 이 안에 사이드바 열기(☰) 버튼이 있으므로 다시 표시. */
+  [data-testid="stToolbar"] {
+    display: flex !important;
+    background: var(--surface) !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  /* 사이드바 접힘 제어 버튼도 항상 노출 */
+  [data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 /* ── 극소형 모바일 (≤ 390px) ─────────────────────────── */
