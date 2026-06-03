@@ -534,18 +534,33 @@ _components.html(f"""
     if (sb) {{
       sb.style.removeProperty('transform');
       sb.style.removeProperty('left');
-      sb.style.display   = 'flex';
+      sb.style.display    = 'flex';
       sb.style.visibility = 'visible';
-      sb.style.opacity   = '1';
-      sb.style.minWidth  = '220px';
+      sb.style.opacity    = '1';
+      sb.style.minWidth   = '220px';
     }}
   }}
 
-  // ─ 페이지 전환 시만 스크롤 최상단
+  // ─ 페이지 전환 시 스크롤 최상단
+  //   AI 스피너 등 비동기 콘텐츠가 스크롤을 밀어내므로 여러 번 실행
   if ({'true' if _page_changed else 'false'}) {{
-    var el = doc.querySelector('[data-testid="stAppViewContainer"]');
-    if (el) el.scrollTop = 0;
-    win.scrollTo(0, 0);
+    function toTop() {{
+      var selectors = [
+        '[data-testid="stAppViewContainer"]',
+        'section[data-testid="stMain"]',
+        '[data-testid="stMainBlockContainer"]',
+        '.main'
+      ];
+      selectors.forEach(function(sel) {{
+        var el = doc.querySelector(sel);
+        if (el) el.scrollTop = 0;
+      }});
+      win.scrollTo(0, 0);
+    }}
+    toTop();
+    setTimeout(toTop, 150);
+    setTimeout(toTop, 500);
+    setTimeout(toTop, 1000);
   }}
 }})();
 </script>
