@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as _components
 from pages_modules import dashboard, taskboard, calendar_view, files_view, memo_view, admin_view, shared_feed, board_view
 from utils.state import init_state, switch_team, get_all_teams
 from utils.auth import login_screen
@@ -497,6 +498,18 @@ with st.sidebar:
 
 # ── 페이지 라우팅 ────────────────────────────────────────────
 page = st.session_state.get("current_page", "dashboard")
+
+# 페이지가 바뀔 때만 스크롤 맨 위로 이동
+if st.session_state.get("_last_page") != page:
+    st.session_state["_last_page"] = page
+    _components.html(
+        """<script>
+        var el = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
+        if (el) el.scrollTop = 0;
+        window.parent.scrollTo(0, 0);
+        </script>""",
+        height=0,
+    )
 
 if page == "dashboard":
     dashboard.render()
