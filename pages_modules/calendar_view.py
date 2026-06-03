@@ -422,6 +422,15 @@ def render():
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
         def _task_rows(ev_list, is_past: bool = False):
+            # ── CSS를 한 번에 모아서 출력 (버튼당 1개씩 → element 간격 2배 발생 방지) ──
+            items = []
+            css_parts = [
+                "<style>",
+                # Streamlit vertical block 간격 최소화 (calt 버튼이 포함된 블록만)
+                "div[data-testid='stVerticalBlock']:has(div[class*='st-key-calt']){gap:2px!important;}",
+                "div[class*='st-key-calt']{margin:0!important;padding:0!important;}",
+            ]
+
             for ev in ev_list:
                 task_id = ev.get("taskId")
                 if not task_id:
@@ -444,35 +453,41 @@ def render():
                 b_color     = "#1d4ed8" if is_sel_task else l_color
                 bk          = f"calt{task_id.replace('-', '')}"
 
-                hover_css = (
-                    f".st-key-{bk} button:hover{{border-color:{b_color}!important;"
-                    f"box-shadow:0 0 0 2px {b_color}!important;filter:brightness(0.96)!important;}}"
-                ) if not is_past else ""
-
-                st.markdown(
-                    f"<style>"
+                css_parts.append(
                     f".st-key-{bk} button{{"
                     f"background:{card_bg}!important;"
                     f"border:1.5px solid {l_color}!important;"
                     f"border-left:3px solid {l_color}!important;"
-                    f"border-radius:8px!important;text-align:left!important;"
-                    f"padding:9px 12px!important;color:#1f2937!important;"
-                    f"width:100%!important;margin:3px 0!important;"
+                    f"border-radius:7px!important;text-align:left!important;"
+                    f"padding:5px 10px!important;color:#1f2937!important;"
+                    f"width:100%!important;"
                     f"font-size:12px!important;font-weight:600!important;"
                     f"cursor:pointer!important;height:auto!important;"
-                    f"min-height:52px!important;white-space:normal!important;"
-                    f"line-height:1.5!important;"
-                    f"transition:border-color 0.15s,box-shadow 0.15s,filter 0.15s!important;"
+                    f"min-height:0!important;white-space:normal!important;"
+                    f"line-height:1.4!important;"
+                    f"transition:border-color 0.15s,box-shadow 0.15s!important;"
                     f"{fade}}}"
-                    f"{hover_css}"
-                    f"</style>",
-                    unsafe_allow_html=True,
                 )
+                if not is_past:
+                    css_parts.append(
+                        f".st-key-{bk} button:hover{{border-color:{b_color}!important;"
+                        f"box-shadow:0 0 0 2px {b_color}22!important;"
+                        f"filter:brightness(0.97)!important;}}"
+                    )
 
+                items.append((bk, badge, title, ev, task_id, cn))
+
+            if not items:
+                return
+
+            css_parts.append("</style>")
+            st.markdown("".join(css_parts), unsafe_allow_html=True)
+
+            # ── 버튼만 순서대로 렌더링 ──
+            for bk, badge, title, ev, task_id, cn in items:
                 btn_label = f"{badge} {title}\n📅 {ev['date']}"
                 if cn:
                     btn_label += f"  · {cn}"
-
                 if st.button(btn_label, key=bk, use_container_width=True):
                     det_task = next(
                         (t for t in st.session_state.tasks if t["id"] == task_id),
