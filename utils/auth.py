@@ -96,6 +96,38 @@ button[data-testid="baseButton-primaryFormSubmit"]:hover,
 .st-key-goto_sm_login button:hover,
 .st-key-goto_member_login button:hover { color: #6b7280 !important; }
 .st-key-goto_sm_login { text-align: center !important; }
+
+/* ── 모바일 반응형 (로그인) ── */
+@media (max-width: 640px) {
+  /* 상단 여백 축소 */
+  .stApp { padding-top: 0 !important; }
+
+  /* 좌우 빈 컬럼 숨김 → 가운데 폼이 풀폭 차지 */
+  div[data-testid="stHorizontalBlock"] {
+    flex-wrap: wrap !important;
+  }
+  div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    min-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding-left: 1.2rem !important;
+    padding-right: 1.2rem !important;
+  }
+
+  /* 입력 필드 iOS 자동 줌 방지 */
+  [data-testid="stTextInput"] input,
+  [data-testid="stSelectbox"] > div > div {
+    font-size: 16px !important;
+  }
+
+  /* 브랜딩 폰트 축소 */
+  .login-brand .brand-name { font-size: 24px !important; }
+
+  /* 버튼 터치 타겟 */
+  button[data-testid="baseButton-primary"],
+  button[data-testid="baseButton-primaryFormSubmit"] {
+    min-height: 48px !important;
+  }
+}
 </style>
 """
 

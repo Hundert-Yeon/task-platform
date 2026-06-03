@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="영업기획팀 · 업무관리 시스템",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 # ── 전역 CSS ─────────────────────────────────────────────────
@@ -157,6 +157,126 @@ button[data-testid="baseButton-primaryFormSubmit"]:hover,
   text-align: center;
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
+}
+
+/* ════════════════════════════════════════════════════════
+   모바일 반응형
+   ════════════════════════════════════════════════════════ */
+
+/* ── 태블릿 (≤ 900px) ─────────────────────────────────── */
+@media (max-width: 900px) {
+  .main .block-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* ── 모바일 (≤ 640px) ─────────────────────────────────── */
+@media (max-width: 640px) {
+  /* 여백 최소화 */
+  .main .block-container {
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+    padding-top: 0.5rem !important;
+    max-width: 100vw !important;
+  }
+
+  /* 모든 가로 컬럼 → 세로 스택 */
+  div[data-testid="stHorizontalBlock"] {
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+  }
+  div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    min-width: 100% !important;
+    flex: 0 0 100% !important;
+    width: 100% !important;
+  }
+
+  /* 터치 타겟: 최소 44px */
+  .stButton > button,
+  button[data-testid*="Button"] {
+    min-height: 44px !important;
+  }
+  /* 사이드바 버튼도 동일 */
+  [data-testid="stSidebar"] button {
+    min-height: 44px !important;
+    padding: 10px 9px !important;
+  }
+
+  /* iOS 자동 줌 방지: 입력 필드 font-size >= 16px */
+  [data-testid="stTextInput"] input,
+  [data-testid="stTextArea"] textarea,
+  [data-testid="stSelectbox"] > div > div,
+  [data-testid="stDateInput"] input,
+  [data-testid="stNumberInput"] input {
+    font-size: 16px !important;
+  }
+
+  /* 헤더 폰트 축소 */
+  h3 { font-size: 1.05rem !important; line-height: 1.4 !important; }
+  h2 { font-size: 1.15rem !important; }
+
+  /* HTML 테이블(캘린더): 가로 스크롤 */
+  .stMarkdown table {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap !important;
+  }
+  .stMarkdown table td,
+  .stMarkdown table th {
+    min-width: 40px !important;
+    font-size: 11px !important;
+    padding: 3px 4px !important;
+  }
+
+  /* Dialog(팝업) 모달: 화면 90% 폭 */
+  [data-testid="stModal"] > div > div {
+    width: 94vw !important;
+    max-width: 94vw !important;
+    margin: 0 auto !important;
+  }
+
+  /* Expander 내부 패딩 축소 */
+  [data-testid="stExpander"] > div:last-child {
+    padding: 0.5rem !important;
+  }
+
+  /* 사이드바 로고 폰트 축소 */
+  .sidebar-logo {
+    font-size: 15px !important;
+    letter-spacing: 2px !important;
+  }
+
+  /* Secondary 버튼: 모바일에서 폰트 정상화 */
+  button[data-testid="baseButton-secondary"],
+  [data-testid="stBaseButton-secondary"] {
+    font-size: 13px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* 캡션/메타 텍스트 */
+  [data-testid="stCaptionContainer"] p {
+    font-size: 11px !important;
+  }
+
+  /* Streamlit 상단 헤더 높이 최소화 */
+  [data-testid="stHeader"] {
+    min-height: 2.75rem !important;
+  }
+}
+
+/* ── 극소형 모바일 (≤ 390px) ─────────────────────────── */
+@media (max-width: 390px) {
+  .main .block-container {
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+  }
+  .sidebar-logo {
+    font-size: 13px !important;
+    letter-spacing: 1px !important;
+  }
+  h3 { font-size: 0.95rem !important; }
 }
 </style>
 """, unsafe_allow_html=True)
