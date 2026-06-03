@@ -9,7 +9,7 @@ st.set_page_config(
     page_title="영업기획팀 · 업무관리 시스템",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="auto",
+    initial_sidebar_state="expanded",
 )
 
 # ── 전역 CSS ─────────────────────────────────────────────────
