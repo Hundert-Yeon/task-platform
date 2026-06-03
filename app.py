@@ -300,39 +300,56 @@ def _render_sm_team_selection():
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,#0c1a35,#1a3461,#0f172a);
                 position:fixed;inset:0;z-index:0"></div>
-    <div style="position:relative;z-index:1;text-align:center;padding:60px 0 30px">
-      <div style="font-size:26px;font-weight:900;letter-spacing:4px;color:#c9b99a">LOTTE</div>
-      <div style="font-size:12px;color:#8a7d6e;letter-spacing:3px;margin-bottom:4px">DEPARTMENT STORE</div>
-      <div style="font-size:20px;font-weight:700;color:white;letter-spacing:2px">{branch}</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-top:6px">
+    <div style="position:relative;z-index:1;text-align:center;padding:52px 0 28px">
+      <div style="font-size:22px;font-weight:900;letter-spacing:4px;color:#c9b99a">LOTTE</div>
+      <div style="font-size:11px;color:#8a7d6e;letter-spacing:3px;margin-bottom:2px">DEPARTMENT STORE</div>
+      <div style="font-size:18px;font-weight:700;color:white;letter-spacing:2px;margin-top:6px">{branch}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:5px">
         {user['name']} 점장님, 열람할 팀을 선택하세요
       </div>
     </div>
+
+    <style>
+    /* 팀 선택 버튼 → 카드 스타일 */
+    div[class*="st-key-sm_sel_"] button {{
+        background: rgba(255,255,255,0.07) !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        border-radius: 12px !important;
+        color: white !important;
+        text-align: left !important;
+        padding: 14px 20px !important;
+        height: 60px !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        letter-spacing: 0.2px !important;
+        transition: all 0.18s ease !important;
+    }}
+    div[class*="st-key-sm_sel_"] button:hover {{
+        background: rgba(255,255,255,0.14) !important;
+        border-color: rgba(201,185,154,0.5) !important;
+        color: #e8dcc8 !important;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.35) !important;
+        transform: translateY(-1px) !important;
+    }}
+    div[class*="st-key-sm_sel_"] button p {{
+        color: white !important;
+        font-size: 14px !important;
+    }}
+    </style>
     """, unsafe_allow_html=True)
 
     teams_data = st.session_state.teams_data
-    _, *cols, _ = st.columns([1] + [2] * len(all_teams) + [1])
+    _, col_c, _ = st.columns([1, 2, 1])
 
-    for i, (tid, tname) in enumerate(all_teams):
-        td      = teams_data[tid]
-        tcfg    = td["cfg"]
-        n_tasks = len(td["tasks"])
-        n_units = len(tcfg.get("units", {}))
-
-        with cols[i]:
-            st.markdown(f"""
-            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);
-                        border-radius:14px;padding:24px 20px;text-align:center;
-                        backdrop-filter:blur(20px)">
-              <div style="font-size:26px;margin-bottom:8px">🏢</div>
-              <div style="font-size:17px;font-weight:700;color:white;margin-bottom:6px">{tname}</div>
-              <div style="font-size:11px;color:rgba(255,255,255,0.5)">
-                유닛/셀/파트 {n_units}개 · Task {n_tasks}건
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"✓ {tname} 선택", key=f"sm_sel_{tid}",
-                         use_container_width=True, type="primary"):
+    with col_c:
+        for tid, tname in all_teams:
+            td      = teams_data[tid]
+            tcfg    = td["cfg"]
+            n_tasks = len(td["tasks"])
+            units   = tcfg.get("units", {})
+            emojis  = "  ".join(u.get("emoji", "") for u in list(units.values()))
+            label   = f"🏢  {tname}    {emojis}    ·  Task {n_tasks}건"
+            if st.button(label, key=f"sm_sel_{tid}", use_container_width=True):
                 switch_team(tid)
                 st.session_state.sm_team_confirmed = True
                 st.session_state.user["team_id"] = tid
