@@ -3,6 +3,7 @@ pages_modules/calendar_view.py
 캘린더 페이지 — HTML 테이블 기반 Google Calendar 스타일
 """
 import streamlit as st
+import streamlit.components.v1 as _cal_comp
 import calendar
 from datetime import date, timedelta, datetime
 from urllib.parse import quote
@@ -422,14 +423,8 @@ def render():
         past     = [e for e in task_evs if date.fromisoformat(e["date"]) < today]
 
         def _task_rows(ev_list, is_past: bool = False):
-            # ── CSS를 한 번에 모아서 출력 (버튼당 1개씩 → element 간격 2배 발생 방지) ──
             items = []
-            css_parts = [
-                "<style>",
-                # Streamlit vertical block 간격 최소화 (calt 버튼이 포함된 블록만)
-                "div[data-testid='stVerticalBlock']:has(div[class*='st-key-calt']){gap:2px!important;}",
-                "div[class*='st-key-calt']{margin:0!important;padding:0!important;}",
-            ]
+            css_parts = ["<style>"]
 
             for ev in ev_list:
                 task_id = ev.get("taskId")
@@ -454,27 +449,24 @@ def render():
                 bk          = f"calt{task_id.replace('-', '')}"
 
                 css_parts.append(
+                    f".st-key-{bk}{{margin:0!important;padding:0!important;}}"
                     f".st-key-{bk} button{{"
                     f"background:{card_bg}!important;"
-                    f"border:1.5px solid {l_color}!important;"
+                    f"border:1px solid {l_color}!important;"
                     f"border-left:3px solid {l_color}!important;"
-                    f"border-radius:7px!important;text-align:left!important;"
-                    f"padding:5px 10px!important;color:#1f2937!important;"
-                    f"width:100%!important;"
-                    f"font-size:12px!important;font-weight:600!important;"
-                    f"cursor:pointer!important;height:auto!important;"
+                    f"border-radius:6px!important;text-align:left!important;"
+                    f"padding:4px 8px!important;color:#1f2937!important;"
+                    f"width:100%!important;display:block!important;"
+                    f"font-size:11.5px!important;font-weight:600!important;"
+                    f"line-height:1.35!important;height:auto!important;"
                     f"min-height:0!important;white-space:normal!important;"
-                    f"line-height:1.4!important;"
-                    f"transition:border-color 0.15s,box-shadow 0.15s!important;"
-                    f"{fade}}}"
+                    f"transition:border-color 0.12s!important;{fade}}}"
                 )
                 if not is_past:
                     css_parts.append(
                         f".st-key-{bk} button:hover{{border-color:{b_color}!important;"
-                        f"box-shadow:0 0 0 2px {b_color}22!important;"
-                        f"filter:brightness(0.97)!important;}}"
+                        f"box-shadow:0 0 0 1px {b_color}44!important;}}"
                     )
-
                 items.append((bk, badge, title, ev, task_id, cn))
 
             if not items:
@@ -483,7 +475,6 @@ def render():
             css_parts.append("</style>")
             st.markdown("".join(css_parts), unsafe_allow_html=True)
 
-            # ── 버튼만 순서대로 렌더링 ──
             for bk, badge, title, ev, task_id, cn in items:
                 btn_label = f"{badge} {title}\n📅 {ev['date']}"
                 if cn:
@@ -495,6 +486,39 @@ def render():
                     )
                     if det_task:
                         _task_detail_popup(det_task)
+
+            # ── JS로 버튼 사이 Streamlit gap 직접 제거 ──
+            js_keys = ",".join(f'"{bk}"' for bk, *_ in items)
+            _cal_comp.html(f"""
+<script>
+(function() {{
+  var keys = [{js_keys}];
+  function compact() {{
+    var doc = window.parent.document;
+    keys.forEach(function(k) {{
+      // 버튼 래퍼 (st-key-xxx)
+      var wrapper = doc.querySelector('div[class*="' + k + '"]');
+      if (!wrapper) return;
+      // 부모 element-container
+      var ec = wrapper.closest('[data-testid="element-container"]');
+      if (ec) {{
+        ec.style.setProperty('margin-top',    '0px', 'important');
+        ec.style.setProperty('margin-bottom', '1px', 'important');
+        ec.style.setProperty('padding',       '0px', 'important');
+      }}
+      // element-container의 부모 stVerticalBlock gap 제거
+      var vb = ec && ec.parentElement;
+      if (vb && vb.dataset.testid === 'stVerticalBlock') {{
+        vb.style.setProperty('gap',     '1px', 'important');
+        vb.style.setProperty('row-gap', '1px', 'important');
+      }}
+    }});
+  }}
+  compact();
+  setTimeout(compact, 300);
+}})();
+</script>
+""", height=0)
 
         if upcoming:
             _task_rows(upcoming, False)
