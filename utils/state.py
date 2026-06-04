@@ -15,7 +15,7 @@ DEFAULT_UNITS = {
     "marketing": {"name": "마케팅",   "emoji": "📣",  "type": "유닛", "color": "#1d4ed8"},
     "analysis":  {"name": "영업분석", "emoji": "📊",  "type": "셀",  "color": "#059669"},
     "online":    {"name": "온라인",   "emoji": "💻",  "type": "셀",  "color": "#7c3aed"},
-    "md":        {"name": "MD",      "emoji": "🏷️", "type": "셀",  "color": "#b45309"},
+    "md":        {"name": "MD",      "emoji": "🏷️", "type": "팀",  "color": "#b45309"},
 }
 
 # ── 기본 파트 설정 (지원팀) ──────────────────────────────────────
