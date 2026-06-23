@@ -433,7 +433,47 @@ with st.sidebar:
     if user["cell"] == "store_manager":
         all_teams       = get_all_teams()
         current_team_id = st.session_state.get("current_team_id", "")
-        st.caption("🔀 팀 전환")
+
+        st.markdown("""
+        <style>
+        /* ── 팀 전환 버튼: 인디고 테마 (사이드바 기본 투명 버튼 오버라이드) ── */
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button,
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-secondary"] {
+            background: #f0edff !important;
+            border: 1px solid #c4b5fd !important;
+            border-left: 3px solid #a78bfa !important;
+            color: #5b21b6 !important;
+            font-weight: 600 !important;
+            font-size: 12px !important;
+            border-radius: 7px !important;
+        }
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button:hover {
+            background: #ede9fe !important;
+            border-color: #7c3aed !important;
+            border-left-color: #6d28d9 !important;
+            color: #4c1d95 !important;
+        }
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-primary"],
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] [data-testid="stBaseButton-primary"] {
+            background: #7c3aed !important;
+            border: 1px solid #6d28d9 !important;
+            border-left: 3px solid #4c1d95 !important;
+            color: white !important;
+        }
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-primary"]:hover,
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] [data-testid="stBaseButton-primary"]:hover {
+            background: #6d28d9 !important;
+            border-color: #5b21b6 !important;
+            color: white !important;
+        }
+        </style>
+        <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:9px;
+                    padding:6px 10px;margin:4px 0 6px;
+                    font-size:10px;color:#7c3aed;font-weight:700;letter-spacing:0.5px">
+          🔀 팀 전환
+        </div>
+        """, unsafe_allow_html=True)
+
         for tid, tname in all_teams:
             is_cur = tid == current_team_id
             if st.button(tname, key=f"sw_team_{tid}",
