@@ -434,17 +434,15 @@ with st.sidebar:
         all_teams       = get_all_teams()
         current_team_id = st.session_state.get("current_team_id", "")
         st.caption("🔀 팀 전환")
-        t_cols = st.columns(len(all_teams))
-        for i, (tid, tname) in enumerate(all_teams):
+        for tid, tname in all_teams:
             is_cur = tid == current_team_id
-            with t_cols[i]:
-                if st.button(tname, key=f"sw_team_{tid}",
-                             use_container_width=True,
-                             type="primary" if is_cur else "secondary"):
-                    switch_team(tid)
-                    st.session_state.user["team_id"] = tid
-                    st.session_state.current_page = "dashboard"
-                    st.rerun()
+            if st.button(tname, key=f"sw_team_{tid}",
+                         use_container_width=True,
+                         type="primary" if is_cur else "secondary"):
+                switch_team(tid)
+                st.session_state.user["team_id"] = tid
+                st.session_state.current_page = "dashboard"
+                st.rerun()
         st.divider()
 
     # 네비게이션
