@@ -447,10 +447,17 @@ with st.sidebar:
             font-size: 12px !important;
             border-radius: 7px !important;
         }
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button p,
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-secondary"] p {
+            color: #5b21b6 !important;
+        }
         [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button:hover {
             background: #ede9fe !important;
             border-color: #7c3aed !important;
             border-left-color: #6d28d9 !important;
+            color: #4c1d95 !important;
+        }
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button:hover p {
             color: #4c1d95 !important;
         }
         [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-primary"],
@@ -460,10 +467,18 @@ with st.sidebar:
             border-left: 3px solid #4c1d95 !important;
             color: white !important;
         }
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-primary"] p,
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] [data-testid="stBaseButton-primary"] p {
+            color: white !important;
+        }
         [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-primary"]:hover,
         [data-testid="stSidebar"] div[class*="st-key-sw_team_"] [data-testid="stBaseButton-primary"]:hover {
             background: #6d28d9 !important;
             border-color: #5b21b6 !important;
+            color: white !important;
+        }
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] button[data-testid="baseButton-primary"]:hover p,
+        [data-testid="stSidebar"] div[class*="st-key-sw_team_"] [data-testid="stBaseButton-primary"]:hover p {
             color: white !important;
         }
         </style>
