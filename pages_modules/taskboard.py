@@ -137,13 +137,40 @@ def render():
     if "detail_task_id" not in st.session_state:
         st.session_state.detail_task_id = None
 
+    # ── AI 조언 사전 생성 (UI 렌더 전에 실행 → 스피너가 헤더보다 위에 위치) ──────
+    from utils.ai_helper import get_ai_task_advice, get_client
+    _api_on = get_client()
+
+    def _advice_stale(_tid: str) -> bool:
+        cached = st.session_state.get(f"task_advice_{_tid}")
+        if not cached:
+            return True
+        if _api_on and isinstance(cached, list) and cached and cached[0].get("icon") == "🔑":
+            return True
+        return False
+
+    # 필터값은 session_state에서 먼저 읽어 AI 생성 범위 결정
+    _pre_filter = st.session_state.get("task_filter_cell", "all")
+    _all_vis    = get_visible_tasks()
+    _pre_vis    = [t for t in _all_vis if _pre_filter == "all" or t["cell"] == _pre_filter]
+    _need = [t for t in _pre_vis if _advice_stale(t["id"])]
+    if _need:
+        if _api_on:
+            with st.spinner(f"AI 조언 생성 중... ({len(_need)}건)"):
+                for _t in _need:
+                    st.session_state[f"task_advice_{_t['id']}"] = get_ai_task_advice(_t)
+        else:
+            for _t in _need:
+                st.session_state[f"task_advice_{_t['id']}"] = get_ai_task_advice(_t)
+
+    # ── 헤더 ──────────────────────────────────────────────────
     col_hdr, col_btn = st.columns([3, 1])
     with col_hdr:
         st.markdown("### ✅ Task Board")
         label = "전체 유닛/셀 업무" if is_manager else f"{units.get(user['cell'],{}).get('name','')} + 공유 업무"
         st.caption(label)
     with col_btn:
-        if st.button("+ 업무 추가", type="primary", use_container_width=True):
+        if st.button("+ 업무 추가", key="tb_add_task", type="primary", use_container_width=True):
             st.session_state.show_task_modal = True
             st.session_state.edit_task_id    = None
 
@@ -159,33 +186,7 @@ def render():
     else:
         filter_cell = "all"
 
-    visible = get_visible_tasks()
-    if filter_cell != "all":
-        visible = [t for t in visible if t["cell"] == filter_cell]
-
-    # ── AI 조언 사전 생성 (캐시 없는 Task + "키 없음" 구버전 캐시 재취득) ─────────
-    from utils.ai_helper import get_ai_task_advice, get_client
-    _api_on = get_client()
-
-    def _advice_stale(_tid: str) -> bool:
-        cached = st.session_state.get(f"task_advice_{_tid}")
-        if not cached:
-            return True
-        # API 키가 연결됐는데 "키 없음" 메시지가 캐시되어 있으면 재취득
-        if _api_on and isinstance(cached, list) and cached and cached[0].get("icon") == "🔑":
-            return True
-        return False
-
-    _need = [t for t in visible if _advice_stale(t["id"])]
-    if _need:
-        _ctx = st.spinner(f"AI 조언 생성 중... ({len(_need)}건)") if _api_on else None
-        if _ctx:
-            with _ctx:
-                for _t in _need:
-                    st.session_state[f"task_advice_{_t['id']}"] = get_ai_task_advice(_t)
-        else:
-            for _t in _need:
-                st.session_state[f"task_advice_{_t['id']}"] = get_ai_task_advice(_t)
+    visible = [t for t in _all_vis if filter_cell == "all" or t["cell"] == filter_cell]
 
     # ── 칸반 보드 ────────────────────────────────────────────
     today = date.today()
